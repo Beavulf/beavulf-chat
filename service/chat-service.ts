@@ -1,4 +1,4 @@
-import { chatRepository } from "../repositories/chat-repository";
+import { chatRepository } from "@/repositories/chat-repository";
 
 export const chatService = {
 

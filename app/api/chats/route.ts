@@ -1,5 +1,5 @@
 import { NextResponse, NextRequest } from "next/server";
-import { chatService } from "@/app/service/chat-service";
+import { chatService } from "@/service/chat-service";
 
 export async function GET() {
     const chats = await chatService.getAllChats();

@@ -8,15 +8,16 @@ export const chatRepository = {
             .select("*")
             .order("created_at", { ascending: false });
         if (error) { throw error }
-        return data
+        return data || [];
     },
 
     async createChat(title: string) {
         const { data, error } = await supabaseServer
             .from("chats")
             .insert({ title })
-            .select();
+            .select()
+            .single();
         if (error) { throw error }
-        return data
+        return data;
     }
 }
