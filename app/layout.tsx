@@ -4,14 +4,14 @@ import "./globals.css";
 import { QueryAppProviders } from "@/providers/query-provider";
 
 const inter = Inter({
-  subsets: ["latin"],
+  subsets: ["latin", "cyrillic"],
   variable: "--font-inter",
   display: "swap",
 });
 
 export const metadata: Metadata = {
   title: "Beavulf Chat",
-  description: "Beavulf Chat is a chat application for the Beavulf community.",
+  description: "Умный AI-чат на базе Beavulf.",
 };
 
 export default function RootLayout({
@@ -21,10 +21,10 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      lang="en"
-      className={`${inter.className} h-full antialiased`}
+      lang="ru"
+      className={`${inter.className} h-full antialiased dark`}
     >
-      <body className="min-h-full flex flex-col">
+      <body className="min-h-full flex flex-col bg-[#212121] text-white">
         <QueryAppProviders>
           {children}
         </QueryAppProviders>
