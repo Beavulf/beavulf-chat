@@ -1,95 +1,94 @@
 import { userLimitService } from "./user-limit-service";
-import { createClient } from "@/lib/server";
+import { authRepositories } from "@/repositories/auth-repositories";
+import { BusinessError } from "@/lib/errors";
+import type { User } from "@supabase/supabase-js";
 
 export const authService = {
 
-    async signInUser() {
-        const supabase = await createClient();
+    // авторизация полльзоватедя с проверкой на активную сессию
+    async signInUser():Promise<User | null>{
+        const currentSession = await authRepositories.getSession();
 
-        const isLogin = await this.getUser();
-        
-        if (isLogin) {
-            return isLogin;
+        if (currentSession) {
+            throw new BusinessError("Пользователь уже авторизован", "ALREADY_AUTHORIZED");
         }
 
-        const { data, error } = await supabase.auth.signInWithPassword({
-            email: "gaga@gmail.com",
-            password: "332211"
-        });
-        
-        if (error?.message.includes("credentials") || error?.message.includes("invalid_login")) { 
-            return {error};
-        }
-
-        return data;
-    },
-
-    async signUpUser() {
-        const supabase = await createClient();
-
-        const { data: {user}, error } = await supabase.auth.signUp({
-            email: 'gaga@gmail.com',
-            password: '332211',
-        });
-
-        if (error) return {error};
-        
+        const {user} = await authRepositories.signIn();
 
         return user;
     },
 
-    async createAnonUser() {
-        const supabase = await createClient();
-        const { data: {user}, error } = await supabase.auth.signInAnonymously();
-        
-        if (error) { throw error; }
+    // ргестрация пользователя
+    async signUpUser():Promise<User | null> {
+        const currentSession = await authRepositories.getSession();
+
+        if (currentSession) {
+            throw new BusinessError("Пользователь уже авторизован", "ALREADY_AUTHORIZED");
+        }
+
+        const {user} = await authRepositories.signUp();         
 
         return user;
     },
 
-    async getUser() {
-        const supabase = await createClient();
+    // авторизация анонимного пользователя
+    async createAnonUser():Promise<User | null> {
+        const currentSession = await authRepositories.getSession();
 
-        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-        if (sessionError) { throw {"Get session error:":sessionError}; }
-        
-        if (!sessionData.session) {
+        if (currentSession) {
             return null;
         }
 
-        const { data: { user }, error } = await supabase.auth.getUser();
-        if (error) { throw {"Get user error":error}; }
+        const {user} = await authRepositories.signInAnon();
+
         return user;
     },
 
+    // текущий авторизованный пользователь
+    async getUser():Promise<User | null>{
+        const currentSession = await authRepositories.getSession();
+
+        if (!currentSession) {
+            return null;
+        }
+
+        const user = await authRepositories.getUser();
+
+        return user;
+    },
+
+    // проверка пользователя на авторизацию при заходе на страницу | создание анонимной учетки
     async auth() {
         const user = await this.getUser();
 
         if (!user) {
             const anonUser = await this.createAnonUser();
-            const userId = anonUser?.id || "";
-            const anonLimit = await userLimitService.getOrCreatedUserLimit(userId);
 
-            return {anonUser};
+            if (!anonUser) {
+                throw new BusinessError("Не удалось создать анонимного пользователя", "ANON_USER_CREATION_FAILED");
+            }
+
+            const userId = anonUser.id;
+            await userLimitService.getOrCreatedUserLimit(userId);
+
+            return {user: anonUser, type: "anon"};
         }
 
-        const userLimit = await userLimitService.getOrCreatedUserLimit(user.id);
-        // const canAsk = await userLimitService.ensureCanAskQuestion(user.id);
+        await userLimitService.getOrCreatedUserLimit(user.id);
 
-        return {user};
+        return {user, type: "user"};
     },
 
-    async signOutUser() {
-        const supabase = await createClient();
+    // деавторизация пользователя
+    async signOutUser():Promise<boolean> {
+        const currentSession = await authRepositories.getSession();
 
-        const isLogin = await this.getUser();
-
-        if (!isLogin) {
-            return null;
+        if (!currentSession) {
+            throw new BusinessError("Пользователь не авторизован", "NOT_AUTHORIZED");
         }
 
-        const {error} = await supabase.auth.signOut();
-        if (error) return {error}
-        return 'success';
+        const {success} = await authRepositories.signOut();
+        
+        return success;
     } 
 }

@@ -1,18 +1,24 @@
-import { NextResponse, NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 import { authService } from "@/service/auth-service";
-
+import { handleError } from "@/lib/utils";
 
 export async function GET() {
-    const {user, anonUser} = await authService.auth();    
-    return NextResponse.json({user, anonUser});
-}
+    try {
+        const {user, type} = await authService.auth();    
 
-export async function POST(request: NextRequest) {
-    // const { title } = await request.json();
-    // const userId = request.cookies.get('userId')?.value;
-    // if (!userId) {
-        // return NextResponse.json({ error: "userId cookie required" }, { status: 400 });
-    // }
-    const isLogin = await authService.signInUser();
-    return NextResponse.json(isLogin);
+        if (type === 'anon') {
+            return NextResponse.json(
+                {message: "Вы авторизовались анонимно", user}, 
+                {status: 200}
+            );
+        }
+
+        return NextResponse.json(
+            {message:"Вы авторизовались", user}, 
+            {status: 200}
+        );
+    }
+    catch(e) {
+        return handleError(e); 
+    }
 }
