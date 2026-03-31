@@ -10,7 +10,8 @@ export const userLimitRepository = {
             .select("*")
             .eq("user_id", userId)
             .single();
-
+            
+        if (error?.code === "PGRST116") return null;
         if (error) { 
             throw new DatabaseError(`Ошибка при получении лимита пользователя: ${error.message}`);
         }
@@ -62,7 +63,7 @@ export const userLimitRepository = {
         const { error } = await supabaseServer.rpc('increment_user_questions', {
           p_user_id: userId,
         });
-        
+
         if (error) {
             throw new DatabaseError(`Ошибка при увеличении счетчика бесплатных вопросов: ${error.message}`);
         }

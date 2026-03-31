@@ -6,7 +6,7 @@ import { userLimitService } from "./user-limit-service";
 export const chatService = {
 
     // создание чата для пользователя
-    async createChat(title?: string) {
+    async createChat(title: string) {
         const user = await authService.getUser();
 
         if (!user) {
@@ -16,14 +16,12 @@ export const chatService = {
         const userId = user.id;
         await userLimitService.ensureCanAskQuestion(userId);
 
-        const finalTitle = title?.trim() || "Новый чат"
-
-        const newChat = await chatRepository.createChat(finalTitle);
+        const newChat = await chatRepository.createChat(title);
 
         return newChat;
     },
 
-    // получение чатов текущего пользователя
+    // получение чатов[] текущего пользователя
     async getChatsByUserId() {
         const user = await authService.getUser();
 
@@ -71,9 +69,7 @@ export const chatService = {
             throw new BusinessError("Нет доступа к данному чату", "FORBIDDEN");
         }
 
-        const finalTitle = newTitle?.trim() || "Новый чат"
-
-        await chatRepository.renameChat(finalTitle, chatId);
+        await chatRepository.renameChat(newTitle, chatId);
         
         return;
     },
@@ -82,7 +78,7 @@ export const chatService = {
         const chat = await chatRepository.getChatById(chatId);
 
         if (!chat) {
-            throw new BusinessError("Чат не найден", "CHAT_NOT_FOUND");
+            throw new BusinessError("Чат не найден", "NOT_FOUND");
         } 
 
         return chat;

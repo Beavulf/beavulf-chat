@@ -67,6 +67,7 @@ export const chatRepository = {
             .eq("id", chatId)
             .single();
 
+        if (error?.code === "PGRST116") return null;
         if (error) {
             throw new DatabaseError(`Ошибка при получении чата: ${error.message}`);
         }
