@@ -57,8 +57,9 @@ export const authService = {
         return user;
     },
 
+
     // проверка пользователя на авторизацию при заходе на страницу | создание анонимной учетки
-    async auth() {
+    async ensureSession() {
         const user = await this.getUser();
 
         if (!user) {

@@ -1,39 +1,46 @@
 import { ANON_SESSION } from "@/constants/constants";
 import { userLimitRepository } from "@/repositories/user-limit-repository";
+import { BusinessError } from "@/lib/errors";
 
 export const userLimitService = {
 
+    // получить лимит юзера
+    async getLimitByUserId(userId: string) {
+        const userLimit = await userLimitRepository.getLimitByUserId(userId);
+
+        return userLimit;
+    },
+
+    // получить лимит или создать новый
     async getOrCreatedUserLimit(userId: string) {
-        const userLimit = await userLimitRepository.getUserById(userId);
+        const userLimit = await this.getLimitByUserId(userId);
 
         if (userLimit) return userLimit;
 
-        if (!userLimit) {
-            const newUserLimit = await userLimitRepository.createUser(userId);
-            
-            return newUserLimit;
-        }
+        const newUserLimit = await userLimitRepository.createUserLimit(userId);
+        return newUserLimit;
     },
 
-    async ensureCanAskQuestion(userId: string) {
+    // может ли задавать вопросы
+    async ensureCanAskQuestion(userId: string):Promise<void> {
         const limits = await this.getOrCreatedUserLimit(userId);
 
         const now = new Date();
         const resetAt = new Date(limits.reset_at);
 
         if (now > resetAt) {
-            const resetLimit = await userLimitRepository.resetLimitIfExpired(userId);
-
-            return resetLimit;
+            await userLimitRepository.resetLimitIfExpired(userId);
+            return;
         }
 
         if (limits.free_q_u >= ANON_SESSION.MESSAGE_LIMIT) {
-            throw new Error("FREE_LIMIT_REACHED");
+            throw new BusinessError("Привышен лимит бесплатных вопросов","MESSAGE_LIMIT_EXCEEDED");
         }
 
-        return limits;
+        return;
     },
 
+    // увеличение кол-во заданных вопросов
     async incrementQuestions(userId: string) {
         await userLimitRepository.incrementQuestions(userId);
     }

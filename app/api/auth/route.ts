@@ -4,7 +4,7 @@ import { handleError } from "@/lib/utils";
 
 export async function GET() {
     try {
-        const {user, type} = await authService.auth();    
+        const {user, type} = await authService.ensureSession();    
 
         if (type === 'anon') {
             return NextResponse.json(
