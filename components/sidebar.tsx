@@ -15,20 +15,27 @@ interface Chat {
   created_at: string
 }
 
-async function fetchChats(): Promise<Chat[]> {
-  const res = await fetch('/api/chats')
-  if (!res.ok) throw new Error('Failed to load chats')
-  return res.json()
+async function fetchChats() {
+  const res = await fetch('/api/chats');
+  if (!res.ok) {
+    const body = await res.json()
+    throw Object.assign(new Error(body.error), { code: body.code })
+  }
+  const data = await res.json()
+  return data.chats;
 }
 
-async function createChat(): Promise<Chat> {
+async function createChat() {
   const res = await fetch('/api/chats', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ title: 'Новый чат' }),
   })
   const data = await res.json()
-  if (!res.ok) throw new Error(data?.error || 'Failed to create chat')
+  if (!res.ok) {
+    const body = await res.json()
+    throw Object.assign(new Error(body.error), { code: body.code })
+  }  
   return Array.isArray(data) ? data[0] : data
 }
 
@@ -38,10 +45,11 @@ export function Sidebar() {
   const queryClient = useQueryClient()
   const [collapsed, setCollapsed] = useState(false)
 
-  const { data: chats = [], isLoading } = useQuery({
+  const { data: chats=[], isLoading } = useQuery({
     queryKey: ['chats'],
     queryFn: fetchChats,
   })
+console.log(chats);
 
   const createMutation = useMutation({
     mutationFn: createChat,
@@ -51,7 +59,7 @@ export function Sidebar() {
         router.push(`/chats/${newChat.id}`)
       }
     },
-  })
+  });
 
   return (
     <aside

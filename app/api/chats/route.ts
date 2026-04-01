@@ -6,8 +6,10 @@ import { handleError } from "@/lib/utils";
 export async function GET() {
     try {
         const chats = await chatService.getChatsByUserId();    
-
-        return NextResponse.json({chats}, {status: 200})
+        return NextResponse.json(
+            { chats }, 
+            { status: 200 }
+        );
     }
     catch(e) {
         return handleError(e); 
@@ -18,7 +20,7 @@ export async function GET() {
 export async function POST(req: NextRequest) {
     try {
         const { title } : { title?: string} = await req.json();
-
+        
         if (title?.length && title.length > 100) {
             return NextResponse.json(
                 {error: "Название чата не должно превышать 100 символов"}, 
@@ -27,11 +29,11 @@ export async function POST(req: NextRequest) {
         }
 
         const finalTitle = title?.trim() || "Новый чат";
-        const chat = await chatService.createChat(finalTitle);    
+        const chat = await chatService.createChat(finalTitle); 
         return NextResponse.json(
             { chat }, 
             { status: 200 }
-        )
+        );
     }
     catch(e) {
         return handleError(e); 

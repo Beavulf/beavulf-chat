@@ -17,13 +17,13 @@ export const chatRepository = {
         return data;
     },
 
-    async createChat(title: string) {
+    async createChat(title: string, userId: string) {
         const { data, error } = await supabaseServer
             .from("chats")
-            .insert({ title })
+            .insert({ title, user_id: userId })
             .select()
             .single();
-
+        
         if (error) {
             throw new DatabaseError(`Ошибка при создании чата: ${error.message}`);
         }

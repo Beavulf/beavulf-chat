@@ -45,14 +45,18 @@ export const authService = {
     },
 
     // текущий авторизованный пользователь
-    async getUser():Promise<User | null>{
+    async getUser():Promise<User>{
         const currentSession = await authRepositories.getSession();
 
         if (!currentSession) {
-            return null;
+            throw new BusinessError("Пользователь не авторизован", "NOT_AUTHORIZED");
         }
 
         const user = await authRepositories.getUser();
+
+        if (!user) {
+            throw new BusinessError("Пользователь не найден", "USER_NOT_FOUND");
+        }
 
         return user;
     },
@@ -60,9 +64,9 @@ export const authService = {
 
     // проверка пользователя на авторизацию при заходе на страницу | создание анонимной учетки
     async ensureSession() {
-        const user = await this.getUser();
+        const currentSession = await authRepositories.getSession();
 
-        if (!user) {
+        if (!currentSession) {
             const anonUser = await this.createAnonUser();
 
             if (!anonUser) {
@@ -73,6 +77,12 @@ export const authService = {
             await userLimitService.getOrCreatedUserLimit(userId);
 
             return {user: anonUser, type: "anon"};
+        }
+
+        const user = await authRepositories.getUser();
+
+        if (!user) {
+            throw new BusinessError("Пользователь не найден", "USER_NOT_FOUND");
         }
 
         await userLimitService.getOrCreatedUserLimit(user.id);

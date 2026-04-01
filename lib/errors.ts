@@ -1,3 +1,4 @@
+import { ERRORS_CODES } from "@/constants/constants"
 export class AppError extends Error {
     constructor(
       public readonly message: string,
@@ -23,6 +24,6 @@ export class AppError extends Error {
   
   export class NotFoundError extends AppError {
     constructor(entity: string) {
-      super(`${entity} не найден`, 'NOT_FOUND', 404)
+      super(`${entity} не найден`, ERRORS_CODES.NOT_FOUND, 404)
     }
   }

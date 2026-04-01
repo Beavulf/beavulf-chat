@@ -8,6 +8,7 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function handleError(error: unknown) {
+  
   if (error instanceof AppError) {
     return NextResponse.json(
       { error: error.message, code: error.code },
