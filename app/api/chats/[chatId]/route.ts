@@ -2,26 +2,31 @@ import { NextResponse, NextRequest } from "next/server";
 import { chatService } from "@/service/chat-service";
 import { handleError } from "@/lib/utils";
 
+// получение чата по айди
 export async function GET(
     {params}: {params: Promise<{chatId:string}>}
 ) {
     try {
         const { chatId } = await params;    
-
         const chat = await chatService.getChatById(chatId);
-        return NextResponse.json({chat}, {status: 200})
+
+        return NextResponse.json(
+            {chat}, 
+            {status: 200}
+        );
     }
     catch(e) {
         return handleError(e); 
     }
 }
 
-// получение списка чатов авторизованного пользователя
+// удаление чата по айди
 export async function DELETE(
-    {params}: {params: Promise<{chatId:string}>}
+    req: NextRequest,
+    {params}: {params: Promise<{chatId:string}>},
 ) {
     try {
-        const { chatId } = await params;    
+        const { chatId } = await params;   
 
         await chatService.deleteChatById(chatId);    
         return new NextResponse(

@@ -1,6 +1,7 @@
 import { ANON_SESSION } from "@/constants/constants";
 import { userLimitRepository } from "@/repositories/user-limit-repository";
 import { BusinessError } from "@/lib/errors";
+import { ERRORS_CODES } from "@/constants/constants";
 
 export const userLimitService = {
 
@@ -22,7 +23,7 @@ export const userLimitService = {
     },
 
     // может ли задавать вопросы
-    async ensureCanAskQuestion(userId: string):Promise<void> {
+    async ensureCanAskQuestion(userId: string, isAnon: boolean):Promise<void> {
         const limits = await this.getOrCreatedUserLimit(userId);
 
         const now = new Date();
@@ -33,8 +34,8 @@ export const userLimitService = {
             return;
         }
 
-        if (limits.free_q_u >= ANON_SESSION.MESSAGE_LIMIT) {
-            throw new BusinessError("Привышен лимит бесплатных вопросов","MESSAGE_LIMIT_EXCEEDED");
+        if (isAnon && limits.free_q_u >= ANON_SESSION.MESSAGE_LIMIT) {
+            throw new BusinessError("Привышен лимит бесплатных вопросов", ERRORS_CODES.MESSAGE_LIMIT_EXCEEDED);
         }
 
         return;

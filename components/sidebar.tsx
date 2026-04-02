@@ -1,63 +1,95 @@
 'use client'
 
-import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
-import { useState } from 'react'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { MessageSquare, Plus, SquarePen, Trash2, LogIn, User, ChevronLeft, ChevronRight } from 'lucide-react'
-import { cn } from '@/lib/utils'
-import { Button } from '@/components/ui/button'
-import { Skeleton } from '@/components/ui/skeleton'
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { MessageSquare, Plus, SquarePen, Trash2, LogIn, User, ChevronLeft, ChevronRight, MoreHorizontal } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
+import { isResOk } from '@/lib/utils';
+import type { TChatRowDto } from '@/types/chats-types';
+import type { TAuthSessionResponse } from '@/types/auth-types';
+import { useRealtimeChats } from '@/hooks/realtime-chats';
+import { API_CONFIG } from '@/config/api-config';
 
-interface Chat {
-  id: string
-  title: string
-  created_at: string
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+
+// вынести
+async function checkAuthSession(): Promise<TAuthSessionResponse> {
+  const res = await fetch(API_CONFIG.AUTH.ENSURE_SESSION);
+  const data = (await res.json()) as TAuthSessionResponse;
+  await isResOk(res);
+  return data;
 }
 
-async function fetchChats() {
-  const res = await fetch('/api/chats');
-  if (!res.ok) {
-    const body = await res.json()
-    throw Object.assign(new Error(body.error), { code: body.code })
-  }
-  const data = await res.json()
-  return data.chats;
+async function deleteChat(chatId: string):Promise<void> {
+  const res = await fetch(API_CONFIG.CHATS.DELETE.replace(':id', chatId), {
+    method: 'DELETE',
+  });
+  await isResOk(res);
+  return;
 }
 
-async function createChat() {
+// получение чатов пользователя авторизованного
+async function getChats():Promise<TChatRowDto[]> {
+  const res = await fetch(API_CONFIG.CHATS.GET);
+  await isResOk(res); 
+  const { chats } = await res.json()
+  return chats;
+}
+
+async function createChat():Promise<TChatRowDto> {
   const res = await fetch('/api/chats', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ title: 'Новый чат' }),
   })
-  const data = await res.json()
-  if (!res.ok) {
-    const body = await res.json()
-    throw Object.assign(new Error(body.error), { code: body.code })
-  }  
-  return Array.isArray(data) ? data[0] : data
+  const data = (await res.json()) as TChatRowDto;
+  await isResOk(res); 
+  return data;
 }
 
 export function Sidebar() {
   const pathname = usePathname()
-  const router = useRouter()
   const queryClient = useQueryClient()
   const [collapsed, setCollapsed] = useState(false)
 
+  const { data: authSessionData } = useQuery({
+    queryKey: ['auth', 'session'],
+    queryFn: checkAuthSession,
+    staleTime: 300,
+  });
+
+  useRealtimeChats(authSessionData?.user.id);
+
   const { data: chats=[], isLoading } = useQuery({
     queryKey: ['chats'],
-    queryFn: fetchChats,
+    queryFn: getChats,
   })
-console.log(chats);
+  console.log(chats);
 
   const createMutation = useMutation({
     mutationFn: createChat,
     onSuccess: (newChat) => {
       queryClient.invalidateQueries({ queryKey: ['chats'] })
-      if (newChat?.id) {
-        router.push(`/chats/${newChat.id}`)
-      }
+      // if (newChat?.id) {
+      //   router.push(`/chats/${newChat.id}`)
+      // }
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: deleteChat,
+    onSuccess: (newChat) => {
+      queryClient.invalidateQueries({ queryKey: ['chats'] })
     },
   });
 
@@ -69,7 +101,7 @@ console.log(chats);
         collapsed ? 'w-[60px]' : 'w-[260px]'
       )}
     >
-      {/* Toggle collapse button */}
+      {/* Кнопка сворачивания бокового меню */}
       <button
         data-testid="sidebar-toggle"
         onClick={() => setCollapsed(!collapsed)}
@@ -151,28 +183,46 @@ console.log(chats);
           </div>
         )}
 
+        {/*вынести */}
         <nav className="space-y-0.5">
           {chats.map((chat) => {
             const isActive = pathname === `/chats/${chat.id}`
             return (
-              <Link
-                key={chat.id}
-                href={`/chats/${chat.id}`}
-                data-testid={`link-chat-${chat.id}`}
-                title={chat.title}
-                className={cn(
-                  'group flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm transition-colors',
+              <div key={chat.id} className={
+                cn(
+                  'group flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm transition-colors justify-between',
                   isActive
                     ? 'bg-[#2f2f2f] text-white'
                     : 'text-[#acacac] hover:bg-[#212121] hover:text-white',
                   collapsed && 'justify-center px-0'
-                )}
-              >
-                <MessageSquare size={16} className="shrink-0" />
-                {!collapsed && (
-                  <span className="truncate flex-1 text-[13.5px]">{chat.title}</span>
-                )}
-              </Link>
+                )
+              }>
+                <Link
+                  href={''}
+                  data-testid={`link-chat-${chat.id}`}
+                  title={chat.title}
+                  className={cn(
+                    'flex gap-2.5 items-center',
+                  )}
+                >
+                  <MessageSquare size={16} className="shrink-0" />
+                  {!collapsed && (<span className="truncate text-[13.5px]">{chat.title}</span>)}
+                </Link>
+                <DropdownMenu>
+                  <DropdownMenuTrigger>
+                    <MoreHorizontal size={14} className='cursor-pointer'/> 
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent >
+                    <DropdownMenuItem className='cursor-pointer'>
+                      Rename
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem variant="destructive" className='cursor-pointer' onClick={()=>deleteMutation.mutate(chat.id)}>
+                      Delete
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             )
           })}
         </nav>

@@ -22,3 +22,10 @@ export function handleError(error: unknown) {
     { status: 500 }
   )
 }
+
+export async function isResOk(res: Response) {
+  if (!res.ok) {
+    const body = await res.json()
+    throw Object.assign(new Error(body.error), { code: body.code })
+  } 
+}

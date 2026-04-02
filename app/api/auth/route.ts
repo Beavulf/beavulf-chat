@@ -1,20 +1,24 @@
 import { NextResponse } from "next/server";
 import { authService } from "@/service/auth-service";
 import { handleError } from "@/lib/utils";
+import type { User } from "@supabase/supabase-js";
+import type { TAuthSessionResponse, TUserDto } from "@/types/auth-types";
+
+function toUserDto(user: User):TUserDto {
+    return {
+        id: user.id,
+        email: user.email || "",
+        created_at: user.created_at,
+        is_anonymous: !!user.is_anonymous
+    }
+}
 
 export async function GET() {
     try {
         const {user, type} = await authService.ensureSession();    
-
-        if (type === 'anon') {
-            return NextResponse.json(
-                {message: "Вы авторизовались анонимно", user}, 
-                {status: 200}
-            );
-        }
-
+        const body : TAuthSessionResponse = {type, user: toUserDto(user)}
         return NextResponse.json(
-            {message:"Вы авторизовались", user}, 
+            body, 
             {status: 200}
         );
     }

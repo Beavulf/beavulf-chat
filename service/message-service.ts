@@ -8,12 +8,11 @@ import { ERRORS_CODES } from "@/constants/constants";
 export const messageService = {
     // создание сообщения
     async createMessage(content: string, role: "user" | "assistant", chatId: string) {
-
         const user = await authService.getUser();
         const chat = await chatService.getChatById(chatId);
 
         if (role === "user") {
-            await userLimitService.ensureCanAskQuestion(user.id);
+            await userLimitService.ensureCanAskQuestion(user.id, !!user.is_anonymous);
         }
 
         const message = await messageRepository.createMessage(content, role, chat.id);

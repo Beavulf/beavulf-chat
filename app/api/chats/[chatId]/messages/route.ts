@@ -19,7 +19,7 @@ export async function GET(
     }
 }
 
-// создание чата для авторизованного пользователя
+// создание сообщения для чата по айди
 export async function POST(
     req: NextRequest,
     { params } : { params: Promise<{chatId: string}> }

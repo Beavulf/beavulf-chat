@@ -12,7 +12,7 @@ export class AppError extends Error {
   
   export class DatabaseError extends AppError {
     constructor(message: string) {
-      super(message, 'DATABASE_ERROR', 500)
+      super(message, ERRORS_CODES.DATABASE_ERROR, 500)
     }
   }
   

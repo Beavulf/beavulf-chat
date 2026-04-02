@@ -1,9 +1,10 @@
 import { supabaseServer } from "@/lib/supabase-server";
 import { DatabaseError } from "@/lib/errors";
+import type { TChatRowDto } from "@/types/chats-types";
 
 export const chatRepository = {
 
-    async getChatsByUserId(userId: string) {
+    async getChatsByUserId(userId: string): Promise<TChatRowDto[]> {
         const { data, error } = await supabaseServer
             .from("chats")
             .select("*")
@@ -17,7 +18,7 @@ export const chatRepository = {
         return data;
     },
 
-    async createChat(title: string, userId: string) {
+    async createChat(title: string, userId: string): Promise<TChatRowDto> {
         const { data, error } = await supabaseServer
             .from("chats")
             .insert({ title, user_id: userId })
@@ -31,7 +32,7 @@ export const chatRepository = {
         return data;
     },
 
-    async deletChatById(chatId: string):Promise<void> {
+    async deleteChatById(chatId: string):Promise<void> {
         const { error } = await supabaseServer
             .from("chats")
             .delete()
@@ -44,7 +45,7 @@ export const chatRepository = {
         return;
     },
 
-    async renameChat(newTitle: string, chatId: string) {
+    async renameChat(newTitle: string, chatId: string): Promise<TChatRowDto> {
         const { data, error } = await supabaseServer
             .from("chats")
             .update({ title: newTitle })
@@ -60,7 +61,7 @@ export const chatRepository = {
     },
 
     // получение чата по айди
-    async getChatById(chatId: string) {
+    async getChatById(chatId: string): Promise<TChatRowDto | null> {
         const { data, error } = await supabaseServer
             .from("chats")
             .select("*")

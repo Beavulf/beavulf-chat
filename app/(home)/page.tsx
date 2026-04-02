@@ -1,10 +1,14 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { Send, Paperclip, Mic, Sparkles, Zap, Globe, Code2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { API_CONFIG } from '@/config/api-config';
+import { isResOk } from '@/lib/utils'
+import type { NextResponse } from 'next/server'
+import type { TAuthSessionResponse } from '@/types/auth-types'
 
 const SUGGESTIONS = [
   {
@@ -29,14 +33,23 @@ const SUGGESTIONS = [
   },
 ]
 
+// проверка на авторизацию
+async function checkAuthSession(): Promise<TAuthSessionResponse> {
+  const res = await fetch(API_CONFIG.AUTH.ENSURE_SESSION);
+  const data = (await res.json()) as TAuthSessionResponse;
+  await isResOk(res);
+  return data;
+}
+
+// создание чата
 async function createChatAndRedirect(message: string) {
-  const res = await fetch('/api/chats', {
+  const res = await fetch(API_CONFIG.CHATS.POST, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ title: message.slice(0, 60) }),
-  })
-  const data = await res.json()
-  if (!res.ok) throw new Error(data?.error || 'Failed to create chat')
+  });
+  const data = await res.json();
+  await isResOk(res);
   return Array.isArray(data) ? data[0] : data
 }
 
@@ -45,6 +58,17 @@ export default function ChatsPage() {
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const router = useRouter()
   const queryClient = useQueryClient()
+
+  const {
+    data: authSessionData, 
+    error: authSessionError, 
+    isLoading: isAuthSessionLoading, 
+    refetch: refetchAuthSession
+  } = useQuery({
+    queryKey:["auth", "session"],
+    queryFn: checkAuthSession,
+    staleTime: 300
+  });
 
   const createMutation = useMutation({
     mutationFn: createChatAndRedirect,
