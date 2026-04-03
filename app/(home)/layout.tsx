@@ -1,4 +1,4 @@
-import { Sidebar } from '@/components/sidebar'
+import { Sidebar } from '@/components/sidebar/sidebar'
 
 export default function ChatsLayout({ children }: { children: React.ReactNode }) {
   return (
