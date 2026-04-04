@@ -18,8 +18,8 @@ interface Message {
 let msgIdCounter = 0
 function genId() { return `msg-${++msgIdCounter}-${Date.now()}` }
 
-export default function ChatPage({ params }: { params: Promise<{ chat_id: string }> }) {
-  const { chat_id } = use(params)
+export default function ChatPage({ params }: { params: Promise<{ chatId: string }> }) {
+  const { chatId } = use(params)
   const searchParams = useSearchParams()
   const firstMessage = searchParams.get('firstMessage')
 

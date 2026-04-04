@@ -3,7 +3,7 @@ import { chatService } from "@/service/chat-service";
 import { handleError } from "@/lib/utils";
 
 // получение списка чатов авторизованного пользователя
-export async function GET() {
+export async function GET(): Promise<NextResponse> {
     try {
         const chats = await chatService.getChatsByUserId();    
         return NextResponse.json(
@@ -17,7 +17,7 @@ export async function GET() {
 }
 
 // создание чата для авторизованного пользователя
-export async function POST(req: NextRequest) {
+export async function POST(req: NextRequest): Promise<NextResponse> {
     try {
         const { title } : { title?: string} = await req.json();
         

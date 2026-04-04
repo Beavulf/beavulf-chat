@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { isResOk } from '@/lib/utils';
@@ -11,8 +11,8 @@ import { API_CONFIG } from '@/config/api-config';
 import ChatList from './ChatList';
 import TopActions from './TopActions';
 import BottomActions from './BottomActions';
-import { createChat } from '@/fetchers/chats-api';
 import { QUERY_KEYS } from '@/constants/constants';
+import { getChats } from '@/fetchers/chats-api';
 
 // вынести
 async function checkAuthSession(): Promise<TAuthSessionResponse> {
@@ -23,26 +23,24 @@ async function checkAuthSession(): Promise<TAuthSessionResponse> {
 }
 
 export function Sidebar() {
-  const queryClient = useQueryClient()
-  const [collapsed, setCollapsed] = useState(false)
+  const [collapsed, setCollapsed] = useState<boolean>(false);
 
+  // получение чатов
   const { data: authSessionData } = useQuery({
-    queryKey: ['auth', 'session'],
+    queryKey: [QUERY_KEYS.AUTH, QUERY_KEYS.SESSION],
     queryFn: checkAuthSession,
     staleTime: 300,
   });
 
+  // подписка реалтайм
   useRealtimeChats(authSessionData?.user.id);
 
-  const createMutation = useMutation({
-    mutationFn: createChat,
-    onSuccess: (newChat) => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.CHATS] })
-      // if (newChat?.id) {
-      //   router.push(`/chats/${newChat.id}`)
-      // }
-    },
-  });
+  const { data: chats=[], isLoading } = useQuery({
+    queryKey: [QUERY_KEYS.CHATS],
+    queryFn: getChats,
+    staleTime: 300,
+    enabled: !!authSessionData?.user.id,
+  })
 
   return (
     <aside
@@ -63,13 +61,15 @@ export function Sidebar() {
       </button>
 
       {/* Top actions */}
-      <TopActions 
-        collapsed={collapsed} 
-        isPending={createMutation.isPending} 
-        onCreate={()=>createMutation.mutate('')}
-      />
+      <TopActions collapsed={collapsed} />
+
       {/* Chat list */}
-      <ChatList collapsed={collapsed} />
+      <ChatList 
+        chats={chats} 
+        isLoading={isLoading}
+        collapsed={collapsed} 
+      />
+
       {/* Bottom actions */}
       <BottomActions collapsed={collapsed} />
 

@@ -1,57 +1,53 @@
 import { useState, useRef, useEffect } from "react";
-import type { TChatRowDto } from "@/types/chats-types";
 import { cn } from "@/lib/utils";
 import { MessageSquare, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "../ui/dropdown-menu";
+import { 
+  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent,
+  DropdownMenuItem, DropdownMenuSeparator 
+} from "../ui/dropdown-menu";
 import Link from 'next/link';
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { deleteChat, renameChat } from "@/fetchers/chats-api";
-import { QUERY_KEYS } from "@/constants/constants";
 import { Input } from "../ui/input";
 import { AlertDialogDestructive } from "../AlertDialogDestructive";
+import { ROUTE_CONFIG } from "@/config/route-config";
+import { useChatActions } from "@/hooks/use-chat-actions";
+import type { TChat } from "@/types/db-types";
+
+const TITLE_STR = "Новый чат";
 
 export default function ChatRow(
-    props: {
-      chat: TChatRowDto;
-      isActive: boolean;
-      collapsed: boolean;
-    }
+  {
+    chat,
+    collapsed
+  }:
+  {
+    chat: TChat;
+    collapsed: boolean;
+  }
 ) {
   const [isRename, setIsRename] = useState<boolean>(false);
-  const [title, setTitle] = useState<string>(props.chat.title || "Новый чат");
-  const inputRef = useRef<HTMLInputElement>(null);
-  const queryClient = useQueryClient()
+  const [title, setTitle] = useState<string>(chat.title || TITLE_STR);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const { isActive, deleteMutation, renameMutation } = useChatActions(chat.id);
 
-  const deleteMutation = useMutation({
-    mutationFn: deleteChat,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.CHATS] })
-    },
-  });
-
-  const renameMutation = useMutation({
-    mutationFn: renameChat,
-    onSuccess: () => {
-      queryClient.invalidateQueries({queryKey: [QUERY_KEYS.CHATS]})
-    }
-  });
+  const finalTitle = chat.title || TITLE_STR;
 
   const submitRename = () => {
-    if (!title.trim()) {
-      setTitle(props.chat.title || 'Новый чат')
+    if (!title.trim() || renameMutation.isPending) {
+      setTitle(finalTitle)
       setIsRename(false);
       return;
     }
     
-    renameMutation.mutate({chatId: props.chat.id, title:title});
+    renameMutation.mutate(title);
     setIsRename(false);
   };
 
   const cancelRename = () => {
-    setTitle(props.chat.title || 'Новый чат')
+    setTitle(finalTitle)
     setIsRename(false);
   }
 
+  // установка фокуса на импут после рендера dropdown меню
   useEffect(() => {
     if (isRename) {
       const timer = setTimeout(() => {
@@ -65,10 +61,10 @@ export default function ChatRow(
     <div className={
         cn(
           'group flex flex-1 items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm transition-colors justify-between',
-          props.isActive
+          !!isActive
             ? 'bg-[#2f2f2f] text-white'
             : 'text-[#acacac] hover:bg-[#212121] hover:text-white',
-          props.collapsed && 'justify-center px-0'
+          collapsed && 'justify-center px-0'
         )
       }>
         {isRename ? 
@@ -81,30 +77,34 @@ export default function ChatRow(
             onBlur={submitRename}
             onKeyDown={e => { 
               if (e.key === "Escape") cancelRename(); 
-              if (e.key === "Enter") submitRename();
+              if (e.key === "Enter") {
+                e.preventDefault(); 
+                submitRename();
+              }
             }}
           /> : 
           <Link
-            href={""}
-            data-testid={`link-chat-${props.chat.id}`}
-            title={props.chat.title || "sss"}
+            href={ROUTE_CONFIG.CHAT_BY_ID.replace(':id', chat.id)}
+            data-testid={`link-chat-${chat.id}`}
+            title={finalTitle}
             className={cn(
-              'flex flex-1 gap-2.5 items-center', props.collapsed && 'justify-center px-0'
+              'flex flex-1 gap-2.5 items-center', collapsed && 'justify-center px-0'
             )}
           >
             <MessageSquare size={16} className="shrink-0" />
-            {!props.collapsed && (<span className="truncate text-[13.5px]">{props.chat.title}</span>)}
+            {!collapsed && (<span className="truncate text-[13.5px]">{chat.title}</span>)}
           </Link>
         }
-        {!props.collapsed &&
+        {!collapsed &&
           <DropdownMenu>
             <DropdownMenuTrigger>
-              <MoreHorizontal size={14} className='cursor-pointer'/> 
+              <MoreHorizontal size={14} className='cursor-pointer text-gray-400 hover:text-white'/> 
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-1xl">
               <DropdownMenuItem
                 className='cursor-pointer'
                 onClick={()=> setIsRename(!isRename)}
+                disabled={renameMutation.isPending || deleteMutation.isPending}
               >
                 <Pencil/>
                 Переименовать
@@ -113,9 +113,10 @@ export default function ChatRow(
               <AlertDialogDestructive 
                 dialogTitle="Удаление чата" 
                 dialogDescription={<span>Вы действительно хотите удалить данный чат ?</span>}
-                onDelete={()=>deleteMutation.mutate(props.chat.id)}
+                onDelete={deleteMutation.mutate}
                 trigger={
                   <DropdownMenuItem 
+                    disabled={deleteMutation.isPending}
                     variant="destructive" 
                     className='cursor-pointer' 
                   >

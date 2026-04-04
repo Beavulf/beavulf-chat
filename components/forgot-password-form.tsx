@@ -16,7 +16,10 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import Link from 'next/link'
 
-export function ForgotPasswordForm({ className, ...props }: React.ComponentPropsWithoutRef<'div'>) {
+export function ForgotPasswordForm(
+  { className, onBack, ...props }: 
+  React.ComponentPropsWithoutRef<'div'> & {onBack: ()=>void}
+) {
   const [email, setEmail] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
@@ -86,9 +89,9 @@ export function ForgotPasswordForm({ className, ...props }: React.ComponentProps
               </div>
               <div className="mt-4 text-center text-sm">
                 Already have an account?{' '}
-                <Link href="/auth/login" className="underline underline-offset-4">
+                <div onClick={onBack} className="underline underline-offset-4 cursor-pointer">
                   Login
-                </Link>
+                </div>
               </div>
             </form>
           </CardContent>

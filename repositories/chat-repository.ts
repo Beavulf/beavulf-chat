@@ -1,12 +1,14 @@
 import { supabaseServer } from "@/lib/supabase-server";
 import { DatabaseError } from "@/lib/errors";
-import type { TChatRowDto } from "@/types/chats-types";
+import type { TChat } from "@/types/db-types";
+import { QUERY_KEYS } from "@/constants/constants";
+
 
 export const chatRepository = {
 
-    async getChatsByUserId(userId: string): Promise<TChatRowDto[]> {
+    async getChatsByUserId(userId: string): Promise<TChat[]> {
         const { data, error } = await supabaseServer
-            .from("chats")
+            .from(QUERY_KEYS.CHATS)
             .select("*")
             .eq("user_id", userId)
             .order("created_at", { ascending: false });
@@ -18,9 +20,9 @@ export const chatRepository = {
         return data;
     },
 
-    async createChat(title: string, userId: string): Promise<TChatRowDto> {
+    async createChat(title: string, userId: string): Promise<TChat> {
         const { data, error } = await supabaseServer
-            .from("chats")
+            .from(QUERY_KEYS.CHATS)
             .insert({ title, user_id: userId })
             .select()
             .single();
@@ -34,7 +36,7 @@ export const chatRepository = {
 
     async deleteChatById(chatId: string):Promise<void> {
         const { error } = await supabaseServer
-            .from("chats")
+            .from(QUERY_KEYS.CHATS)
             .delete()
             .eq("id", chatId);
 
@@ -45,9 +47,9 @@ export const chatRepository = {
         return;
     },
 
-    async renameChat(newTitle: string, chatId: string): Promise<TChatRowDto> {
+    async renameChat(newTitle: string, chatId: string): Promise<TChat> {
         const { data, error } = await supabaseServer
-            .from("chats")
+            .from(QUERY_KEYS.CHATS)
             .update({ title: newTitle })
             .select()
             .eq("id", chatId)
@@ -61,9 +63,9 @@ export const chatRepository = {
     },
 
     // получение чата по айди
-    async getChatById(chatId: string): Promise<TChatRowDto | null> {
+    async getChatById(chatId: string): Promise<TChat | null> {
         const { data, error } = await supabaseServer
-            .from("chats")
+            .from(QUERY_KEYS.CHATS)
             .select("*")
             .eq("id", chatId)
             .single();

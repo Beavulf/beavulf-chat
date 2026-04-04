@@ -13,7 +13,7 @@ function toUserDto(user: User):TUserDto {
     }
 }
 
-export async function GET() {
+export async function GET(): Promise<NextResponse> {
     try {
         const {user, type} = await authService.ensureSession();    
         const body : TAuthSessionResponse = {type, user: toUserDto(user)}

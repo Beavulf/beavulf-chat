@@ -3,12 +3,12 @@ import { BusinessError } from "@/lib/errors";
 import { authService } from "./auth-service";
 import { userLimitService } from "./user-limit-service";
 import { ERRORS_CODES } from "@/constants/constants";
-import type { TChatRowDto } from "@/types/chats-types";
+import type { TChat } from "@/types/db-types";
 
 export const chatService = {
 
     // создание чата для пользователя
-    async createChat(title: string): Promise<TChatRowDto> {        
+    async createChat(title: string): Promise<TChat> {        
         const user = await authService.getUser();
         await userLimitService.ensureCanAskQuestion(user.id, !!user.is_anonymous);
         const newChat = await chatRepository.createChat(title, user.id);
@@ -17,7 +17,7 @@ export const chatService = {
     },
 
     // получение чатов[] текущего пользователя
-    async getChatsByUserId(): Promise<TChatRowDto[]> {
+    async getChatsByUserId(): Promise<TChat[]> {
         const user = await authService.getUser();
         const chats = await chatRepository.getChatsByUserId(user.id);
 
@@ -39,7 +39,7 @@ export const chatService = {
     },
 
     // получение чата по айди с проверкой доступа к этому чату
-    async getChatById(chatId: string): Promise<TChatRowDto> {
+    async getChatById(chatId: string): Promise<TChat> {
         const user = await authService.getUser();
         const userId = user.id;
 

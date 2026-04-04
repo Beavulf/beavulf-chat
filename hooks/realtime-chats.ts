@@ -2,9 +2,8 @@ import { useEffect, useMemo } from "react";
 import { createClient } from "@/lib/client";
 import { useQueryClient } from "@tanstack/react-query";
 import type { RealtimePostgresChangesPayload } from "@supabase/supabase-js";
-import type { TChatRowDto } from "@/types/chats-types";
-
-const CHATS_QUERY_KEY = ["chats"] as const;
+import { QUERY_KEYS } from "@/constants/constants";
+import type { TChat } from "@/types/db-types";
 
 export function useRealtimeChats(userId: string | undefined) {
   const queryClient = useQueryClient();
@@ -13,22 +12,22 @@ export function useRealtimeChats(userId: string | undefined) {
   useEffect(() => {
     if (!userId) return;
 
-    const onChange = (payload: RealtimePostgresChangesPayload<TChatRowDto>) => {
+    const onChange = (payload: RealtimePostgresChangesPayload<TChat>) => {
       if (payload.eventType === "INSERT" && payload.new) {
-        queryClient.setQueryData<TChatRowDto[]>(CHATS_QUERY_KEY, (old) => [
+        queryClient.setQueryData<TChat[]>([QUERY_KEYS.CHATS], (old) => [
           payload.new!,
           ...(old ?? []),
         ]);
         return;
       }
       if (payload.eventType === "DELETE" && payload.old) {
-        queryClient.setQueryData<TChatRowDto[]>(CHATS_QUERY_KEY, (old) =>
+        queryClient.setQueryData<TChat[]>([QUERY_KEYS.CHATS], (old) =>
           (old ?? []).filter((c) => c.id !== payload.old!.id)
         );
         return;
       }
       if (payload.eventType === "UPDATE" && payload.new) {
-        queryClient.setQueryData<TChatRowDto[]>(CHATS_QUERY_KEY, (old) =>
+        queryClient.setQueryData<TChat[]>([QUERY_KEYS.CHATS], (old) =>
           (old ?? []).map((c) =>
             c.id === payload.new!.id ? payload.new! : c
           )
