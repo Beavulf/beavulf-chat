@@ -36,7 +36,9 @@ export function AuthDialog(
       {formView === 'login'  && <LoginForm 
         onSignUp={() => setFormView('signup')} 
         onForgot={() => setFormView('forgot')}
-        onSuccess={() => setOpen(false)}
+        onSuccess={() => {
+          setOpen(false);
+        }}
       />}
       {formView === 'signup' && <SignUpForm onLogin={() => setFormView('login')} />}
       {formView === 'forgot' && <ForgotPasswordForm onBack={() => setFormView('login')} />}

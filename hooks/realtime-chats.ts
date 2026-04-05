@@ -6,7 +6,7 @@ import { QUERY_KEYS } from "@/constants/constants";
 import type { TChat } from "@/types/db-types";
 import { useSession } from "./use-session";
 
-export function useRealtimeChats(userIds: string | undefined) {
+export function useRealtimeChats() {
   const queryClient = useQueryClient();
   const { user } = useSession();
   const supabase = useMemo(() => createClient(), []);

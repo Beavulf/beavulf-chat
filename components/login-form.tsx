@@ -1,22 +1,18 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
-import { useState } from 'react'
-import { cn } from '@/lib/utils'
-import { Button } from '@/components/ui/button'
+import { useState } from 'react';
+import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { signIn } from '@/fetchers/auth-api'
-import { QUERY_KEYS } from '@/constants/constants'
-import { toast } from 'sonner'
+} from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { useAuth } from '@/hooks/use-auth';
 
 export function LoginForm(
   { 
@@ -28,28 +24,16 @@ export function LoginForm(
   React.ComponentPropsWithoutRef<'div'> & 
   {onSignUp: ()=>void, onForgot: ()=>void, onSuccess: ()=>void}
 ) {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState<string | null>(null)
-  const router = useRouter()
-  const queryClient = useQueryClient()
-
-  const { mutate: userSignIn, isPending } = useMutation({
-    mutationFn: signIn,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.AUTH, QUERY_KEYS.SESSION] });
-      router.push('/');
-      onSuccess();
-    },
-    onError: (error) => {
-      toast.error(`Неверный email или пароль`);
-      setError(error.message);
-    }
-  });
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const { signInUser } = useAuth();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    await userSignIn({email, password});
+    await signInUser.mutate({email, password},
+      { onSuccess: () => onSuccess() }
+    );
     setEmail('');
     setPassword('');
     setError(null);
@@ -95,8 +79,8 @@ export function LoginForm(
                 />
               </div>
               {error && <p className="text-sm text-red-500">{error}</p>}
-              <Button type="submit" className="w-full cursor-pointer" disabled={isPending}>
-                {isPending ? 'Вход...' : 'Войти'}
+              <Button type="submit" className="w-full cursor-pointer" disabled={signInUser.isPending}>
+                {signInUser.isPending ? 'Вход...' : 'Войти'}
               </Button>
             </div>
             <div className="mt-4 text-center text-sm">

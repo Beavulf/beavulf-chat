@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { QueryAppProviders } from "@/providers/query-provider";
+import { AuthSyncProvider } from "@/providers/auth-sync-provider";
 
 const inter = Inter({
   subsets: ["latin", "cyrillic"],
@@ -26,7 +27,9 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col bg-[#212121] text-white">
         <QueryAppProviders>
-          {children}
+          {/* <AuthSyncProvider> */}
+            {children}
+          {/* </AuthSyncProvider> */}
         </QueryAppProviders>
       </body>
     </html>

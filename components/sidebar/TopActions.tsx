@@ -5,17 +5,19 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createChat } from "@/fetchers/chats-api";
 import { QUERY_KEYS } from "@/constants/constants";
 import { toast } from "sonner";
+import { useSession } from "@/hooks/use-session";
 
 export default function TopActions(
   { collapsed }: 
   { collapsed: boolean }
 ) {
   const queryClient = useQueryClient();
-  
+  const { user } = useSession();
+
   const createMutation = useMutation({
     mutationFn: createChat,
     onSuccess: (newChat) => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.CHATS] });
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.CHATS, user?.id] });
       toast.success('Новый чат создан');
       // if (newChat?.id) {
       //   router.push(`/chats/${newChat.id}`)

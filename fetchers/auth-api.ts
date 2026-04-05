@@ -29,9 +29,14 @@ export async function signIn(
 }
 
 // регистрация
-export async function signUp():Promise<User> {
+export async function signUp(
+  {email, password}: 
+  {email: string, password: string}
+):Promise<User> {
   const res = await fetch(API_CONFIG.AUTH.SIGN_UP, {
     method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({email, password}),
   });
   await isResOk(res);
   const { user }:{ user: User } = await res.json();

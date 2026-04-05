@@ -20,8 +20,6 @@ export const authRepositories = {
         const { data: {user, session}, error } = await supabase.auth.signInWithPassword({
             email,
             password,
-            // email: "gaga@gmail.com",
-            // password: "332211"
         });
         
         if (error) { 
@@ -32,12 +30,12 @@ export const authRepositories = {
     },
 
     // регистрация
-    async signUp():Promise<TAuthData> {
+    async signUp(email: string, password: string):Promise<TAuthData> {
         const supabase = await createClient();
 
         const { data: {user, session}, error } = await supabase.auth.signUp({
-            email: 'gaga@gmail.com',
-            password: '332211',
+            email,
+            password,
         });
 
         if (error) {

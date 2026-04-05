@@ -14,7 +14,6 @@ export function useChatActions(chatId: string) {
 
   const userId = user?.id;
   const isActive = pathname === ROUTE_CONFIG.CHAT_BY_ID.replace(':id', chatId);
-
   const queryKey = [QUERY_KEYS.CHATS, userId];
 
   const deleteMutation = useMutation({

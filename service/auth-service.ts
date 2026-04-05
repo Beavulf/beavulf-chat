@@ -24,12 +24,17 @@ export const authService = {
     },
 
     // ргестрация пользователя
-    async signUpUser():Promise<User | null> {
+    async signUpUser(email: string, password: string):Promise<User | null> {
       const currentSession = await authRepositories.getSession();
       if (currentSession) {
-        throw new BusinessError("Пользователь уже авторизован", ERRORS_CODES.ALREADY_AUTHORIZED);
+        if (currentSession.user.is_anonymous) {
+          await authRepositories.signOut();
+        }
+        else {
+          throw new BusinessError("Пользователь уже авторизован", ERRORS_CODES.ALREADY_AUTHORIZED);
+        }
       }
-      const {user} = await authRepositories.signUp(); 
+      const {user} = await authRepositories.signUp(email, password); 
 
       return user;
     },

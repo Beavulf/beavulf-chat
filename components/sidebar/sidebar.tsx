@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -17,7 +17,7 @@ export function Sidebar() {
   const { user } = useSession();
 
   // подписка реалтайм на чаты
-  useRealtimeChats(user?.id);
+  useRealtimeChats();
 
   // получаем чаты пользователя
   const { data: chats=[], isLoading } = useQuery({
