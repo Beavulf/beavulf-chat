@@ -17,8 +17,14 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
 export function LoginForm(
-  { className, onSignUp, onForgot, ...props }: 
-  React.ComponentPropsWithoutRef<'div'> & {onSignUp: ()=>void, onForgot: ()=>void}
+  { 
+    className, 
+    onSignUp, 
+    onForgot,
+    onSuccess, 
+    ...props }: 
+  React.ComponentPropsWithoutRef<'div'> & 
+  {onSignUp: ()=>void, onForgot: ()=>void, onSuccess: ()=>void}
 ) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -33,13 +39,14 @@ export function LoginForm(
     setError(null)
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      })
-      if (error) throw error
+      // const { error } = await supabase.auth.signInWithPassword({
+      //   email,
+      //   password,
+      // })
+      // if (error) throw error
       // Update this route to redirect to an authenticated route. The user already has an active session.
       router.push('/')
+      onSuccess();
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : 'An error occurred')
     } finally {

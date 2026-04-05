@@ -19,21 +19,27 @@ export function AuthDialog(
   {children, view}: 
   {children: React.ReactNode, view: FormType}
 ) {
+  const [open, setOpen] = useState<boolean>(false);
   const [formView, setFormView] = useState<FormType>(view);
 
   return (
-  <Dialog onOpenChange={()=>setFormView(view)}>
+  <Dialog open={open} onOpenChange={(open)=>{setFormView(view); setOpen(open)}}>
     <DialogTrigger className="w-full">
       {children}
     </DialogTrigger>
     <DialogContent className="sm:max-w-sm">
       <DialogDescription>Войдите в аккаунт или создайте новый</DialogDescription>
       <DialogHeader>
-        <DialogTitle>Авторизация</DialogTitle>
+        <DialogTitle>
+          {formView === 'login' && 'Вход'}
+          {formView === 'signup' && 'Регистрация'}
+          {formView === 'forgot' && 'Восстановление пароля'}
+        </DialogTitle>
       </DialogHeader>
       {formView === 'login'  && <LoginForm 
         onSignUp={() => setFormView('signup')} 
         onForgot={() => setFormView('forgot')}
+        onSuccess={() => setOpen(false)}
       />}
       {formView === 'signup' && <SignUpForm onLogin={() => setFormView('login')} />}
       {formView === 'forgot' && <ForgotPasswordForm onBack={() => setFormView('login')} />}

@@ -1,9 +1,9 @@
-import { NextResponse, NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 import { authService } from "@/service/auth-service";
 import { handleError } from "@/lib/utils";
 
 
-export async function POST(request: NextRequest) {
+export async function POST(): Promise<NextResponse> {
     try {
         const isSignOut = await authService.signOutUser();
         return NextResponse.json(

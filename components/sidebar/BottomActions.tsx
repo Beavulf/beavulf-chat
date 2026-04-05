@@ -8,7 +8,7 @@ export default function BottomActions(
       collapsed
     }:
     {
-      authSessionData: TAuthSessionResponse,
+      authSessionData?: TAuthSessionResponse,
       collapsed: boolean
     }
 ) {

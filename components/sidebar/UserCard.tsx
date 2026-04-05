@@ -10,7 +10,7 @@ export default function UserCard(
       collapsed
     }:
     {
-      authSessionData: TAuthSessionResponse,
+      authSessionData?: TAuthSessionResponse,
       collapsed: boolean
     }
 ) {
@@ -34,24 +34,22 @@ export default function UserCard(
   if (isAuthenticated) {
     const user = authSessionData.user;
     return (
-      // <AuthDialog>
-        <Link
-          href={API_CONFIG.AUTH.SIGN_OUT}
-          data-testid="link-profile"
-          className="flex w-full items-center gap-3 rounded-lg px-2.5 py-2.5 text-sm hover:bg-[#2f2f2f] transition-colors"
-        >
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#406535] border border-[#5a8a4a] shrink-0">
-            <User size={15} className="text-white" />
-          </div>
-          <div className="flex flex-col min-w-0">
-              <span className="text-[13px] font-medium text-[#d1d1d1] truncate">
-                {user.email}
-              </span>
-              <span className="text-[11px] text-[#5a8a4a] truncate">Профиль</span>
-          </div>
-          <LogOut size={14} className="ml-auto shrink-0 text-[#5a5a5a]" />
-        </Link>
-      // </AuthDialog>
+      <Link
+        href={API_CONFIG.AUTH.SIGN_OUT}
+        data-testid="link-profile"
+        className="flex w-full items-center gap-3 rounded-lg px-2.5 py-2.5 text-sm hover:bg-[#2f2f2f] transition-colors"
+      >
+        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#406535] border border-[#5a8a4a] shrink-0">
+          <User size={15} className="text-white" />
+        </div>
+        <div className="flex flex-col min-w-0">
+            <span className="text-[13px] font-medium text-[#d1d1d1] truncate">
+              {user.email}
+            </span>
+            <span className="text-[11px] text-[#5a8a4a] truncate">Профиль</span>
+        </div>
+        <LogOut size={14} className="ml-auto shrink-0 text-[#5a5a5a]" />
+      </Link>
     );
   }
 

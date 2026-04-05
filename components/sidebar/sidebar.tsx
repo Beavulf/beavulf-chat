@@ -17,8 +17,8 @@ import { getChats } from '@/fetchers/chats-api';
 // вынести
 async function checkAuthSession(): Promise<TAuthSessionResponse> {
   const res = await fetch(API_CONFIG.AUTH.ENSURE_SESSION);
-  const data = (await res.json()) as TAuthSessionResponse;
   await isResOk(res);
+  const data = (await res.json()) as TAuthSessionResponse;
   return data;
 }
 
@@ -32,9 +32,10 @@ export function Sidebar() {
     staleTime: 300,
   });
 
-  // подписка реалтайм
+  // подписка реалтайм на чаты
   useRealtimeChats(authSessionData?.user.id);
 
+  // получаем чаты пользователя
   const { data: chats=[], isLoading } = useQuery({
     queryKey: [QUERY_KEYS.CHATS],
     queryFn: getChats,
@@ -71,7 +72,7 @@ export function Sidebar() {
       />
 
       {/* Bottom actions */}
-      <BottomActions collapsed={collapsed} />
+      <BottomActions collapsed={collapsed} authSessionData={authSessionData}/>
 
     </aside>
   )
