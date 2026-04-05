@@ -17,7 +17,7 @@ const TITLE_STR = "Новый чат";
 export default function ChatRow(
   {
     chat,
-    collapsed
+    collapsed,
   }:
   {
     chat: TChat;

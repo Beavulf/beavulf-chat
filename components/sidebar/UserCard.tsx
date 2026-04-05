@@ -1,28 +1,37 @@
+'use client'
+
 import { LogIn, LogOut, User } from "lucide-react";
-import Link from "next/link";
-import type { TAuthSessionResponse } from "@/types/auth-types";
 import { AuthDialog } from "../auth/AuthDialog";
-import { API_CONFIG } from "@/config/api-config";
+import { useSession } from "@/hooks/use-session";
+import { signOut } from "@/fetchers/auth-api";
 
 export default function UserCard(
-    {
-      authSessionData,
-      collapsed
-    }:
-    {
-      authSessionData?: TAuthSessionResponse,
-      collapsed: boolean
-    }
+    { collapsed }:
+    { collapsed: boolean }
 ) {
-  const isAuthenticated = !!authSessionData?.user && !authSessionData.user.is_anonymous;
+  const { user } = useSession();
+  const isAuthenticated = !!user && !user.is_anonymous;
+
+  const handleSignOut = async () => {
+    await signOut();
+    window.location.reload();
+  }
 
   // если свернут
   if (collapsed) {
+    if (isAuthenticated) return (
+      <div
+        className="flex items-center justify-center w-9 h-9 rounded-lg text-[#8e8ea0] hover:text-white hover:bg-[#2f2f2f] transition-colors"
+        title={"Профиль"}
+      >
+        <User size={18} />
+      </div>
+    )
     return (
-      <AuthDialog view={isAuthenticated ? 'login' : 'login'}>
+      <AuthDialog view={'login'}>
         <div
           className="flex items-center justify-center w-9 h-9 rounded-lg text-[#8e8ea0] hover:text-white hover:bg-[#2f2f2f] transition-colors"
-          title={isAuthenticated ? "Профиль" : "Войти"}
+          title={"Войти"}
         >
           <User size={18} />
         </div>
@@ -32,24 +41,26 @@ export default function UserCard(
 
   // если авторизован
   if (isAuthenticated) {
-    const user = authSessionData.user;
     return (
-      <Link
-        href={API_CONFIG.AUTH.SIGN_OUT}
+      <div
         data-testid="link-profile"
         className="flex w-full items-center gap-3 rounded-lg px-2.5 py-2.5 text-sm hover:bg-[#2f2f2f] transition-colors"
       >
         <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#406535] border border-[#5a8a4a] shrink-0">
           <User size={15} className="text-white" />
         </div>
-        <div className="flex flex-col min-w-0">
+        <div className="flex flex-col min-w-0 cursor-pointer">
             <span className="text-[13px] font-medium text-[#d1d1d1] truncate">
               {user.email}
             </span>
             <span className="text-[11px] text-[#5a8a4a] truncate">Профиль</span>
         </div>
-        <LogOut size={14} className="ml-auto shrink-0 text-[#5a5a5a]" />
-      </Link>
+        <LogOut 
+          onClick={handleSignOut} 
+          size={14} 
+          className="ml-auto shrink-0 text-[#5a5a5a] cursor-pointer hover:text-white" 
+        />
+      </div>
     );
   }
 

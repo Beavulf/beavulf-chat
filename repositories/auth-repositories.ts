@@ -14,12 +14,14 @@ type TAuthData = {
 export const authRepositories = {
 
     // авторизация
-    async signIn():Promise<TAuthData>{
+    async signIn(email: string, password: string):Promise<TAuthData>{
         const supabase = await createClient();
 
         const { data: {user, session}, error } = await supabase.auth.signInWithPassword({
-            email: "gaga@gmail.com",
-            password: "332211"
+            email,
+            password,
+            // email: "gaga@gmail.com",
+            // password: "332211"
         });
         
         if (error) { 

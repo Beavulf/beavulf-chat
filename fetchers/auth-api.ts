@@ -13,9 +13,14 @@ export async function checkAuthSession(): Promise<TAuthSessionResponse> {
 }
 
 // авторизация
-export async function signIn(): Promise<User> {
+export async function signIn(
+  { email, password }: 
+  { email: string, password: string }
+): Promise<User> {
   const res = await fetch(API_CONFIG.AUTH.SIGN_IN, {
     method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
   });
   await isResOk(res);
   const { user }:{ user: User } = await res.json();
@@ -35,7 +40,7 @@ export async function signUp():Promise<User> {
 }
 
 // выход
-export async function logout(): Promise<void> {
+export async function signOut(): Promise<void> {
   const res = await fetch(API_CONFIG.AUTH.SIGN_OUT, {
     method: "POST",
   });

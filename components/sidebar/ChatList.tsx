@@ -1,18 +1,18 @@
-import { MessageSquare } from "lucide-react"
-import ChatRow from "./ChatRow"
-import { Skeleton } from "../ui/skeleton"
-import type { TChat } from "@/types/db-types"
+import { MessageSquare } from "lucide-react";
+import ChatRow from "./ChatRow";
+import { Skeleton } from "../ui/skeleton";
+import type { TChat } from "@/types/db-types";
 
 export default function ChatList(
   {
     collapsed,
     isLoading,
-    chats
+    chats,
   }:
   {
     collapsed: boolean,
     isLoading: boolean,
-    chats: TChat[]
+    chats: TChat[],
   }
 ) {
   return (

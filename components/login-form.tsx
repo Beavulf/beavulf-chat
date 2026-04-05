@@ -2,9 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
-
 import { cn } from '@/lib/utils'
-import { createClient } from '@/lib/client'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -15,6 +13,10 @@ import {
 } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { signIn } from '@/fetchers/auth-api'
+import { QUERY_KEYS } from '@/constants/constants'
+import { toast } from 'sonner'
 
 export function LoginForm(
   { 
@@ -29,37 +31,36 @@ export function LoginForm(
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
+  const queryClient = useQueryClient()
+
+  const { mutate: userSignIn, isPending } = useMutation({
+    mutationFn: signIn,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.AUTH, QUERY_KEYS.SESSION] });
+      router.push('/');
+      onSuccess();
+    },
+    onError: (error) => {
+      toast.error(`Неверный email или пароль`);
+      setError(error.message);
+    }
+  });
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    const supabase = createClient()
-    setIsLoading(true)
-    setError(null)
-
-    try {
-      // const { error } = await supabase.auth.signInWithPassword({
-      //   email,
-      //   password,
-      // })
-      // if (error) throw error
-      // Update this route to redirect to an authenticated route. The user already has an active session.
-      router.push('/')
-      onSuccess();
-    } catch (error: unknown) {
-      setError(error instanceof Error ? error.message : 'An error occurred')
-    } finally {
-      setIsLoading(false)
-    }
+    await userSignIn({email, password});
+    setEmail('');
+    setPassword('');
+    setError(null);
   }
 
   return (
     <div className={cn('flex flex-col gap-6', className)} {...props}>
       <Card>
         <CardHeader>
-          <CardTitle className="text-2xl">Login</CardTitle>
-          <CardDescription>Enter your email below to login to your account</CardDescription>
+          <CardTitle className="text-2xl">Вход</CardTitle>
+          <CardDescription>Введите свой email и пароль для входа</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleLogin}>
@@ -80,9 +81,9 @@ export function LoginForm(
                   <Label htmlFor="password">Password</Label>
                   <div
                     onClick={onForgot}
-                    className="ml-auto inline-block text-sm underline-offset-4 hover:underline"
+                    className="ml-auto inline-block text-sm underline-offset-4 hover:underline cursor-pointer"
                   >
-                    Forgot your password?
+                    Забыли пароль?
                   </div>
                 </div>
                 <Input
@@ -94,14 +95,14 @@ export function LoginForm(
                 />
               </div>
               {error && <p className="text-sm text-red-500">{error}</p>}
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? 'Logging in...' : 'Login'}
+              <Button type="submit" className="w-full cursor-pointer" disabled={isPending}>
+                {isPending ? 'Вход...' : 'Войти'}
               </Button>
             </div>
             <div className="mt-4 text-center text-sm">
-              Don&apos;t have an account?{' '}
+              Не зарегистрированы?{' '}
               <div onClick={onSignUp} className="underline underline-offset-4 cursor-pointer">
-                Sign up
+                Регистрация
               </div>
             </div>
           </form>

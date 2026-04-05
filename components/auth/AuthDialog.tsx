@@ -31,9 +31,6 @@ export function AuthDialog(
       <DialogDescription>Войдите в аккаунт или создайте новый</DialogDescription>
       <DialogHeader>
         <DialogTitle>
-          {formView === 'login' && 'Вход'}
-          {formView === 'signup' && 'Регистрация'}
-          {formView === 'forgot' && 'Восстановление пароля'}
         </DialogTitle>
       </DialogHeader>
       {formView === 'login'  && <LoginForm 
