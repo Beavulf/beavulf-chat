@@ -40,11 +40,7 @@ export default function ChatList(
       )}
 
       <nav className="space-y-0.5">
-        {chats.map((chat) => {
-          return (
-            <ChatRow key={chat.id} chat={chat} collapsed={collapsed}/>
-          )
-        })}
+        {chats.map((chat) => <ChatRow key={chat.id} chat={chat} collapsed={collapsed}/> )}
       </nav>
     </div>
   )

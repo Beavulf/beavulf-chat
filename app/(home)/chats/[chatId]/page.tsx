@@ -7,75 +7,93 @@ import {
   RefreshCw, User, Bot
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import type { TMessage } from '@/types/db-types'
+import { useRealtimeMessages } from '@/hooks/realtime-messages'
+import { useQuery } from '@tanstack/react-query'
+import { getMessages } from '@/fetchers/message-api'
+import { QUERY_KEYS } from '@/constants/constants'
+import { useSession } from '@/hooks/use-session'
+import { useChat, type UIMessage } from '@ai-sdk/react'
+import { DefaultChatTransport } from 'ai'
+import { API_CONFIG } from '@/config/api-config'
 
-interface Message {
-  id: string
-  role: 'user' | 'assistant'
-  content: string
-  createdAt?: Date
+// Хелпер для извлечения текста из UIMessage
+function extractTextFromMessage(message: UIMessage): string {
+  return message.parts
+    .filter((part): part is { type: 'text'; text: string } => part.type === 'text')
+    .map(part => part.text)
+    .join('')
 }
 
-let msgIdCounter = 0
-function genId() { return `msg-${++msgIdCounter}-${Date.now()}` }
+// Хелпер для конвертации TMessage в UIMessage
+function dbMessageToUIMessage(msg: TMessage): UIMessage {
+  return {
+    id: msg.id,
+    role: msg.role as 'user' | 'assistant',
+    parts: [{ type: 'text', text: msg.content }],
+  }
+}
 
-export default function ChatPage({ params }: { params: Promise<{ chatId: string }> }) {
+export default function ChatPage(
+  { params }:
+  { params: Promise<{ chatId: string }> }
+) {
   const { chatId } = use(params)
   const searchParams = useSearchParams()
   const firstMessage = searchParams.get('firstMessage')
+  const { user } = useSession()
+  const [initialMessagesLoaded, setInitialMessagesLoaded] = useState(false)
 
-  const [messages, setMessages] = useState<Message[]>([])
-  const [input, setInput] = useState('')
-  const [isStreaming, setIsStreaming] = useState(false)
+  // Получение истории сообщений из БД
+  const { data: historyMessages = [], isLoading } = useQuery({
+    queryKey: [QUERY_KEYS.MESSAGES, chatId],
+    queryFn: () => getMessages(chatId),
+    staleTime: 300 * 60 * 1000,
+    enabled: !!user?.id && !!chatId
+  })
+
+  // Инициализируем useChat
+  const {
+    status,
+    sendMessage,
+    messages,
+    setMessages
+  } = useChat({
+    transport: new DefaultChatTransport({
+      api: API_CONFIG.MESSAGES.POST.replace(':chatId', chatId)
+    }),
+  })
+
+  // Синхронизация: когда история загрузилась, устанавливаем в useChat
+  useEffect(() => {
+    if (historyMessages.length > 0 && !initialMessagesLoaded) {
+      setMessages(historyMessages.map(dbMessageToUIMessage))
+      setInitialMessagesLoaded(true)
+    }
+  }, [historyMessages, initialMessagesLoaded, setMessages])
+
+  const [input, setInput] = useState<string>('')
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
   const initialized = useRef(false)
+  const isStreaming = status === 'submitted' || status === 'streaming'
 
-  // If arriving from home page with a first message, auto-send it
+  useRealtimeMessages(chatId)
+
+  // Если переход с главной и первым сообщением
   useEffect(() => {
-    if (firstMessage && !initialized.current) {
+    if (firstMessage && !initialized.current && initialMessagesLoaded) {
       initialized.current = true
-      sendMessage(firstMessage)
+      sendMessage({ text: firstMessage })
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  const sendMessage = async (text: string) => {
-    const trimmed = text.trim()
-    if (!trimmed || isStreaming) return
-
-    const userMsg: Message = { id: genId(), role: 'user', content: trimmed, createdAt: new Date() }
-    setMessages(prev => [...prev, userMsg])
-    setInput('')
-    setIsStreaming(true)
-
-    // Stub: simulate streaming assistant response
-    const assistantId = genId()
-    setMessages(prev => [...prev, { id: assistantId, role: 'assistant', content: '' }])
-
-    // Simulate word-by-word streaming
-    const fakeReply = `Привет! Это тестовый ответ на: «${trimmed}». LLM интеграция будет добавлена через API-маршрут /api/messages. Используй fetch с ReadableStream для потоковых ответов от OpenAI / Gemini.`
-    let i = 0
-    const words = fakeReply.split(' ')
-
-    const stream = () => {
-      if (i >= words.length) {
-        setIsStreaming(false)
-        return
-      }
-      setMessages(prev => prev.map(m =>
-        m.id === assistantId
-          ? { ...m, content: words.slice(0, i + 1).join(' ') }
-          : m
-      ))
-      i++
-      setTimeout(stream, 40)
-    }
-    setTimeout(stream, 300)
-  }
+  }, [firstMessage, sendMessage, initialMessagesLoaded])
 
   const handleSubmit = (e?: React.FormEvent) => {
     e?.preventDefault()
-    sendMessage(input)
+    const trimmed = input.trim()
+    if (!trimmed || isStreaming) return
+    sendMessage({ text: trimmed })
+    setInput('')
   }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -101,7 +119,7 @@ export default function ChatPage({ params }: { params: Promise<{ chatId: string 
       {/* Messages area */}
       <div className="flex-1 overflow-y-auto">
         <div className="mx-auto max-w-3xl px-4 py-6 flex flex-col gap-6">
-          {messages.length === 0 && (
+          {messages.length === 0 && !isLoading && (
             <div className="flex flex-col items-center justify-center h-48 text-center">
               <div className="w-10 h-10 rounded-full bg-[#2f2f2f] flex items-center justify-center mb-3">
                 <Bot size={20} className="text-[#8e8ea0]" />
@@ -113,15 +131,6 @@ export default function ChatPage({ params }: { params: Promise<{ chatId: string 
           {messages.map((msg) => (
             <MessageBubble key={msg.id} message={msg} />
           ))}
-
-          {/* Streaming indicator */}
-          {isStreaming && messages[messages.length - 1]?.role === 'assistant' && messages[messages.length - 1]?.content === '' && (
-            <div className="flex items-center gap-2 pl-10">
-              <span className="h-1.5 w-1.5 rounded-full bg-[#8e8ea0] animate-bounce" style={{ animationDelay: '0ms' }} />
-              <span className="h-1.5 w-1.5 rounded-full bg-[#8e8ea0] animate-bounce" style={{ animationDelay: '150ms' }} />
-              <span className="h-1.5 w-1.5 rounded-full bg-[#8e8ea0] animate-bounce" style={{ animationDelay: '300ms' }} />
-            </div>
-          )}
 
           <div ref={bottomRef} />
         </div>
@@ -197,12 +206,13 @@ export default function ChatPage({ params }: { params: Promise<{ chatId: string 
   )
 }
 
-function MessageBubble({ message }: { message: Message }) {
+function MessageBubble({ message }: { message: UIMessage }) {
   const [copied, setCopied] = useState(false)
   const isUser = message.role === 'user'
+  const content = extractTextFromMessage(message)
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(message.content)
+    navigator.clipboard.writeText(content)
     setCopied(true)
     setTimeout(() => setCopied(false), 1500)
   }
@@ -229,16 +239,11 @@ function MessageBubble({ message }: { message: Message }) {
               : 'text-[#ececec] rounded-bl-sm'
           )}
         >
-          {message.content || (
-            <span className="opacity-0">placeholder</span>
-          )}
-          {message.role === 'assistant' && message.content && (
-            <span className="inline-block w-0.5 h-[1em] bg-white/70 ml-0.5 animate-pulse align-middle" style={{ display: 'none' }} />
-          )}
+          {content}
         </div>
 
         {/* Action buttons for assistant messages */}
-        {!isUser && message.content && (
+        {!isUser && content && (
           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity pl-1">
             <button
               onClick={handleCopy}

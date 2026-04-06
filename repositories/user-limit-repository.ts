@@ -1,10 +1,11 @@
 import { ANON_SESSION } from "@/constants/constants";
 import { supabaseServer } from "@/lib/supabase-server";
 import { DatabaseError } from "@/lib/errors";
+import type { TUserLimit, TUserLimitUpdate } from "@/types/db-types";
 
 export const userLimitRepository = {
 
-    async getLimitByUserId(userId: string) {
+    async getLimitByUserId(userId: string): Promise<TUserLimit | null> {
         const { data, error } = await supabaseServer
             .from("user_limits")
             .select("*")
@@ -20,7 +21,7 @@ export const userLimitRepository = {
     },
 
     // создание лимита для полльзователя
-    async createUserLimit(userId: string) {
+    async createUserLimit(userId: string): Promise<TUserLimit> {
         const { data, error } = await supabaseServer
             .from("user_limits")
             .insert({ 
@@ -38,7 +39,7 @@ export const userLimitRepository = {
     },
 
     // обновление лимита
-    async resetLimitIfExpired(userId: string) {
+    async resetLimitIfExpired(userId: string): Promise<TUserLimitUpdate> {
         const now = new Date();
 
         const { data, error } = await supabaseServer

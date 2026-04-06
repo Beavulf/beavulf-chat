@@ -4,48 +4,51 @@ import { authService } from "./auth-service";
 import { chatService } from "./chat-service";
 import { userLimitService } from "./user-limit-service";
 import { ERRORS_CODES } from "@/constants/constants";
+import type { TMessage, TMessageInsert } from "@/types/db-types";
 
 export const messageService = {
-    // создание сообщения
-    async createMessage(content: string, role: "user" | "assistant", chatId: string) {
-        const user = await authService.getUser();
-        const chat = await chatService.getChatById(chatId);
 
-        if (role === "user") {
-            await userLimitService.ensureCanAskQuestion(user.id, !!user.is_anonymous);
-        }
+  // создание сообщения
+  async createMessage(content: string, role: "user" | "assistant", chatId: string): Promise<TMessageInsert> {
+    const user = await authService.getUser();
+    const chat = await chatService.getChatById(chatId);
 
-        const message = await messageRepository.createMessage(content, role, chat.id);
+    if (role === "user") {
+      await userLimitService.ensureCanAskQuestion(user.id, !!user.is_anonymous);
+    }
 
-        if (role === "user") {
-            await userLimitService.incrementQuestions(user.id);
-        }
+    const message = await messageRepository.createMessage(content, role, chat.id, user.id);
 
-        return message;
-    },
+    if (role === "user" && user.is_anonymous) {
+      await userLimitService.incrementQuestions(user.id);
+    }
 
-    // изменение сообщения с проверкой доступа
-    async updateMessageById(messageId: string, content: string): Promise<void> {
-        const user = await authService.getUser();
-        const message = await messageRepository.getMessageById(messageId);
+    return message;
+  },
 
-        if (!message) {
-            throw new BusinessError("Сообщение не найдено", ERRORS_CODES.NOT_FOUND);
-        }
+  // изменение сообщения с проверкой доступа
+  async updateMessageById(messageId: string, content: string): Promise<void> {
+    const user = await authService.getUser();
+    const message = await messageRepository.getMessageById(messageId);
 
-        if (message.user_id !== user.id) {
-            throw new BusinessError("Нет доступа к данному сообщению", ERRORS_CODES.FORBIDDEN);
-        }
+    if (!message) {
+      throw new BusinessError("Сообщение не найдено", ERRORS_CODES.NOT_FOUND);
+    }
 
-        await messageRepository.updateMessageById(message.id, content);
+    if (message.user_id !== user.id) {
+      throw new BusinessError("Нет доступа к данному сообщению", ERRORS_CODES.FORBIDDEN);
+    }
 
-        return;
-    },
+    await messageRepository.updateMessageById(message.id, content);
 
-    // получение сообщений чата
-    async getMessagesByChatId(chatId: string) {
-        const chat = await chatService.getChatById(chatId);
-        const messages = await messageRepository.getMessagesByChatId(chat.id);
-        return messages;
-    },
+    return;
+  },
+
+  // получение сообщений чата
+  async getMessagesByChatId(chatId: string): Promise<TMessage[]> {
+    const chat = await chatService.getChatById(chatId);
+    const messages = await messageRepository.getMessagesByChatId(chat.id);
+    
+    return messages;
+  },
 }

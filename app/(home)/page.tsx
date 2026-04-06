@@ -1,14 +1,13 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { Send, Paperclip, Mic, Sparkles, Zap, Globe, Code2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { API_CONFIG } from '@/config/api-config';
-import { isResOk } from '@/lib/utils'
-import type { NextResponse } from 'next/server'
-import type { TAuthSessionResponse } from '@/types/auth-types'
+import { useSession } from '@/hooks/use-session'
+import { createChat } from '@/fetchers/chats-api'
+import { QUERY_KEYS } from '@/constants/constants'
 
 const SUGGESTIONS = [
   {
@@ -33,58 +32,30 @@ const SUGGESTIONS = [
   },
 ]
 
-// проверка на авторизацию
-async function checkAuthSession(): Promise<TAuthSessionResponse> {
-  const res = await fetch(API_CONFIG.AUTH.ENSURE_SESSION);
-  const data = (await res.json()) as TAuthSessionResponse;
-  await isResOk(res);
-  return data;
-}
-
-// создание чата
-async function createChatAndRedirect(message: string) {
-  const res = await fetch(API_CONFIG.CHATS.POST, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ title: message.slice(0, 60) }),
-  });
-  const data = await res.json();
-  await isResOk(res);
-  return Array.isArray(data) ? data[0] : data
-}
-
 export default function ChatsPage() {
   const [message, setMessage] = useState('')
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const router = useRouter()
-  const queryClient = useQueryClient()
+  const queryClient = useQueryClient();
+  const { user } = useSession();
 
-  const {
-    data: authSessionData, 
-    error: authSessionError, 
-    isLoading: isAuthSessionLoading, 
-    refetch: refetchAuthSession
-  } = useQuery({
-    queryKey:["auth", "session"],
-    queryFn: checkAuthSession,
-    staleTime: 300
-  });
-
+  // создание сообщения
   const createMutation = useMutation({
-    mutationFn: createChatAndRedirect,
+    mutationFn: createChat,
     onSuccess: (chat) => {
-      queryClient.invalidateQueries({ queryKey: ['chats'] })
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.CHATS, user?.id] })
       if (chat?.id) {
         router.push(`/chats/${chat.id}?firstMessage=${encodeURIComponent(message)}`)
       }
     },
   })
 
+  // подтверждение отправки сообщения
   const handleSubmit = (e?: React.FormEvent) => {
-    e?.preventDefault()
-    const trimmed = message.trim()
-    if (!trimmed || createMutation.isPending) return
-    createMutation.mutate(trimmed)
+    e?.preventDefault();
+    const trimmed = message.trim();
+    if (!trimmed || createMutation.isPending) return;
+    createMutation.mutate(trimmed);
   }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -94,14 +65,15 @@ export default function ChatsPage() {
     }
   }
 
-  // Auto-resize textarea
+  // авторазмер поля ввода
   useEffect(() => {
-    const el = textareaRef.current
-    if (!el) return
-    el.style.height = 'auto'
-    el.style.height = Math.min(el.scrollHeight, 200) + 'px'
-  }, [message])
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 200) + 'px';
+  }, [message]);
 
+  // выбрать шаблон сообщения
   const handleSuggestion = (title: string, subtitle: string) => {
     setMessage(`${title}: ${subtitle}`)
     textareaRef.current?.focus()
@@ -137,7 +109,7 @@ export default function ChatsPage() {
           </h1>
         </div>
 
-        {/* Suggestion chips */}
+        {/* шаблоны сообщений */}
         <div className="grid grid-cols-2 gap-2.5 w-full mb-6">
           {SUGGESTIONS.map(({ icon: Icon, title, subtitle }) => (
             <button
@@ -155,7 +127,7 @@ export default function ChatsPage() {
           ))}
         </div>
 
-        {/* Input area */}
+        {/* поле ввода */}
         <form onSubmit={handleSubmit} className="w-full">
           <div className="relative flex flex-col rounded-2xl bg-[#2f2f2f] border border-[#3f3f3f] focus-within:border-[#555] transition-colors shadow-lg">
             <textarea
@@ -212,7 +184,7 @@ export default function ChatsPage() {
           </div>
         </form>
 
-        {/* Disclaimer */}
+        {/* дисклеймер */}
         <p className="mt-4 text-center text-[11px] text-[#3f3f3f] leading-relaxed">
           Beavulf может допускать ошибки. Проверяйте важную информацию.
         </p>

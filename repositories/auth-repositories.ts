@@ -2,10 +2,6 @@ import { createClient } from "@/lib/server"
 import { DatabaseError } from "@/lib/errors";
 import type { Session, User } from "@supabase/supabase-js";
 
-type TSignOut = {
-    success: boolean;
-}
-
 type TAuthData = {
     user: User | null;
     session: Session | null;
@@ -85,7 +81,7 @@ export const authRepositories = {
     },
 
     // деавторизация
-    async signOut():Promise<TSignOut> {
+    async signOut():Promise<{success: boolean}> {
         const supabase = await createClient();
 
         const { error } = await supabase.auth.signOut();

@@ -2,8 +2,8 @@ import { Sidebar } from '@/components/sidebar/sidebar';
 import { Toaster } from '@/components/ui/sonner';
 
 export default function ChatsLayout(
-  { children, modal }: 
-  { children: React.ReactNode, modal: React.ReactNode }) {
+  { children }:
+  { children: React.ReactNode }) {
   return (
     <div className="flex h-screen w-full overflow-hidden bg-[#212121]">
       <Sidebar />
@@ -11,7 +11,6 @@ export default function ChatsLayout(
         {children}
         <Toaster />
       </main>
-      {modal}
     </div>
   )
 }

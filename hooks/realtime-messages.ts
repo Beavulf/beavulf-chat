@@ -3,35 +3,31 @@ import { createClient } from "@/lib/client";
 import { useQueryClient } from "@tanstack/react-query";
 import type { RealtimePostgresChangesPayload } from "@supabase/supabase-js";
 import { QUERY_KEYS } from "@/constants/constants";
-import type { TChat } from "@/types/db-types";
-import { useSession } from "./use-session";
+import type { TMessage } from "@/types/db-types";
 
-export function useRealtimeChats() {
+export function useRealtimeMessages(chatId: string) {
   const queryClient = useQueryClient();
-  const { user } = useSession();
   const supabase = useMemo(() => createClient(), []);
 
-  const userId = user?.id;
-
   useEffect(() => {
-    if (!userId) return;
+    if (!chatId) return;
 
-    const onChange = (payload: RealtimePostgresChangesPayload<TChat>) => {
+    const onChange = (payload: RealtimePostgresChangesPayload<TMessage>) => {
       if (payload.eventType === "INSERT" && payload.new) {
-        queryClient.setQueryData<TChat[]>([QUERY_KEYS.CHATS, userId], (old) => [
+        queryClient.setQueryData<TMessage[]>([QUERY_KEYS.MESSAGES, chatId], (old) => [
           payload.new!,
           ...(old ?? []),
         ]);
         return;
       }
       if (payload.eventType === "DELETE" && payload.old) {
-        queryClient.setQueryData<TChat[]>([QUERY_KEYS.CHATS, userId], (old) =>
+        queryClient.setQueryData<TMessage[]>([QUERY_KEYS.MESSAGES, chatId], (old) =>
           (old ?? []).filter((c) => c.id !== payload.old!.id)
         );
         return;
       }
       if (payload.eventType === "UPDATE" && payload.new) {
-        queryClient.setQueryData<TChat[]>([QUERY_KEYS.CHATS, userId], (old) =>
+        queryClient.setQueryData<TMessage[]>([QUERY_KEYS.MESSAGES, chatId], (old) =>
           (old ?? []).map((c) =>
             c.id === payload.new!.id ? payload.new! : c
           )
@@ -40,14 +36,14 @@ export function useRealtimeChats() {
     };
 
     const channel = supabase
-      .channel(`${QUERY_KEYS.CHATS}:${userId}`)
+      .channel(`${QUERY_KEYS.MESSAGES}:${chatId}`)
       .on(
         "postgres_changes",
         {
           event: "*",
           schema: "public",
-          table: "chats",
-          filter: `user_id=eq.${userId}`,
+          table: QUERY_KEYS.MESSAGES,
+          filter: `chat_id=eq.${chatId}`,
         },
         onChange
       )
@@ -56,5 +52,5 @@ export function useRealtimeChats() {
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [userId, queryClient, supabase]);
+  }, [chatId, queryClient, supabase]);
 }

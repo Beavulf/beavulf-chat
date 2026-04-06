@@ -1,6 +1,7 @@
 import { NextResponse, NextRequest } from "next/server";
 import { chatService } from "@/service/chat-service";
 import { handleError } from "@/lib/utils";
+import { ERRORS_CODES } from "@/constants/constants";
 
 // получение списка чатов авторизованного пользователя
 export async function GET(): Promise<NextResponse> {
@@ -20,7 +21,13 @@ export async function GET(): Promise<NextResponse> {
 export async function POST(req: NextRequest): Promise<NextResponse> {
     try {
         const { title } : { title?: string} = await req.json();
-        
+
+        if ( typeof title !== 'string' ) {
+            return NextResponse.json(
+                { error: "Название чата должно быть строкой", code: ERRORS_CODES.INVALID_TITLE },
+                { status: 400 }
+            );
+        }
         if (title?.length && title.length > 100) {
             return NextResponse.json(
                 {error: "Название чата не должно превышать 100 символов"}, 
@@ -28,11 +35,11 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
             );
         }
 
-        const finalTitle = title?.trim() || "Новый чат";
+        const finalTitle = title?.toString()?.trim() || "Новый чат";
         const chat = await chatService.createChat(finalTitle); 
         return NextResponse.json(
             { chat }, 
-            { status: 200 }
+            { status: 201 }
         );
     }
     catch(e) {
