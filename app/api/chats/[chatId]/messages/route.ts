@@ -1,6 +1,6 @@
 import { NextResponse, NextRequest } from "next/server";
 import { messageService } from "@/service/message-service";
-import { handleError, isUuidV4 } from "@/lib/utils";
+import { extractTextFromMessage, handleError, isUuidV4 } from "@/lib/utils";
 import { streamText, convertToModelMessages } from "ai";
 import type { UIMessage } from "ai";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
@@ -54,10 +54,7 @@ export async function POST(
     }
 
     // Извлекаем текст из последнего сообщения пользователя
-    const userText = lastUserMessage.parts
-      .filter((part): part is { type: 'text'; text: string } => part.type === 'text')
-      .map(part => part.text)
-      .join('');
+    const userText = extractTextFromMessage(lastUserMessage);
 
     if (userText.length > 1000) {
       return NextResponse.json(
@@ -89,6 +86,6 @@ export async function POST(
     });
   }
   catch(e) {
-      return handleError(e);
+    return handleError(e);
   }
 }

@@ -88,7 +88,7 @@ export default function ChatRow(
             data-testid={`link-chat-${chat.id}`}
             title={finalTitle}
             className={cn(
-              'flex flex-1 gap-2.5 items-center', collapsed && 'justify-center px-0'
+              'flex flex-1 gap-2.5 items-center max-w-50', collapsed && 'justify-center px-0'
             )}
           >
             <MessageSquare size={16} className="shrink-0" />

@@ -1,33 +1,13 @@
 import { SquarePen } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { createChat } from "@/fetchers/chats-api";
-import { QUERY_KEYS } from "@/constants/constants";
-import { toast } from "sonner";
-import { useSession } from "@/hooks/use-session";
+import { useRouter } from "next/navigation";
 
 export default function TopActions(
   { collapsed }: 
   { collapsed: boolean }
 ) {
-  const queryClient = useQueryClient();
-  const { user } = useSession();
-
-  const createMutation = useMutation({
-    mutationFn: createChat,
-    onSuccess: (newChat) => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.CHATS, user?.id] });
-      toast.success('Новый чат создан');
-      // if (newChat?.id) {
-      //   router.push(`/chats/${newChat.id}`)
-      // }
-    },
-    onError: (e) => {
-      toast.error(`Не удалось создать чат: ${e.message}`);
-    }
-  });
-
+  const router = useRouter();
   return (
     <div className={cn('flex items-center gap-1 p-3 pt-4', collapsed ? 'justify-center' : 'justify-between')}>
       {!collapsed && (
@@ -63,8 +43,7 @@ export default function TopActions(
 
       <button
         data-testid="button-new-chat"
-        onClick={()=>createMutation.mutate('')}
-        disabled={createMutation.isPending}
+        onClick={()=>router.push('/')}
         className={cn(
           'flex items-center justify-center rounded-lg text-[#8e8ea0] hover:text-white hover:bg-[#2f2f2f] transition-colors cursor-pointer',
           collapsed ? 'w-9 h-9' : 'w-9 h-9'

@@ -4,6 +4,9 @@ import { AppError } from "./errors"
 import { NextResponse } from "next/server";
 import { validate, version } from "uuid";
 import { ERRORS_CODES } from "@/constants/constants";
+import type { UIMessage } from "ai";
+import type { TMessage } from "@/types/db-types";
+import { toast } from "sonner";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -45,4 +48,21 @@ export function isUuidV4(uuid: string): NextResponse | undefined{
   }
 
   return;
+}
+
+// извлечение текста из UIMessage
+export function extractTextFromMessage(message: UIMessage): string {
+  return message.parts
+    .filter((part): part is { type: 'text'; text: string } => part.type === 'text')
+    .map(part => part.text)
+    .join('')
+}
+
+// конвертация TMessage в UIMessage
+export function dbMessageToUIMessage(msg: TMessage): UIMessage {
+  return {
+    id: msg.id,
+    role: msg.role as 'user' | 'assistant',
+    parts: [{ type: 'text', text: msg.content }],
+  }
 }

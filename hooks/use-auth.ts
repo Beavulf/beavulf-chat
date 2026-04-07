@@ -29,6 +29,8 @@ export function useAuth() {
     mutationFn: signOut,
     onSuccess: () => {
       queryClient.clear();
+      router.push('/')
+      router.refresh();
     },
     onError: () => {
       toast.error('Ошибка при выходе');

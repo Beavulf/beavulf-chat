@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils'
 import { useSession } from '@/hooks/use-session'
 import { createChat } from '@/fetchers/chats-api'
 import { QUERY_KEYS } from '@/constants/constants'
+import { ROUTE_CONFIG } from '@/config/route-config'
 
 const SUGGESTIONS = [
   {
@@ -45,7 +46,7 @@ export default function ChatsPage() {
     onSuccess: (chat) => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.CHATS, user?.id] })
       if (chat?.id) {
-        router.push(`/chats/${chat.id}?firstMessage=${encodeURIComponent(message)}`)
+        router.push(`${ROUTE_CONFIG.CHAT_BY_ID.replace(':id', chat.id)}?firstMessage=${encodeURIComponent(message)}`)
       }
     },
   })

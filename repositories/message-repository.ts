@@ -29,7 +29,7 @@ export const messageRepository = {
       .from("messages")
       .select("*")
       .eq("chat_id", chatId)
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: true });
 
     if (error) {
       throw new DatabaseError(`Ошибка при получении сообщений: ${error.message}`);

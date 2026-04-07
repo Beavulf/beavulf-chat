@@ -3,18 +3,17 @@
 import { LogIn, LogOut, User } from "lucide-react";
 import { AuthDialog } from "../auth/AuthDialog";
 import { useSession } from "@/hooks/use-session";
-import { signOut } from "@/fetchers/auth-api";
-
+import { useAuth } from "@/hooks/use-auth";
 export default function UserCard(
     { collapsed }:
     { collapsed: boolean }
 ) {
   const { user } = useSession();
+  const { signOutUser } = useAuth();
   const isAuthenticated = !!user && !user.is_anonymous;
 
   const handleSignOut = async () => {
-    await signOut();
-    window.location.reload();
+    await signOutUser.mutate();
   }
 
   // если свернут

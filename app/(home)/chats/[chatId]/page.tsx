@@ -3,46 +3,54 @@
 import { useState, useRef, useEffect, use } from 'react'
 import { useSearchParams } from 'next/navigation'
 import {
-  Send, Paperclip, Mic, Copy, ThumbsUp, ThumbsDown,
-  RefreshCw, User, Bot
+  Send, Paperclip, Mic,
+  Bot
 } from 'lucide-react'
-import { cn } from '@/lib/utils'
-import type { TMessage } from '@/types/db-types'
+import { cn, dbMessageToUIMessage } from '@/lib/utils'
 import { useRealtimeMessages } from '@/hooks/realtime-messages'
 import { useQuery } from '@tanstack/react-query'
 import { getMessages } from '@/fetchers/message-api'
 import { QUERY_KEYS } from '@/constants/constants'
 import { useSession } from '@/hooks/use-session'
-import { useChat, type UIMessage } from '@ai-sdk/react'
+import { useChat } from '@ai-sdk/react'
 import { DefaultChatTransport } from 'ai'
 import { API_CONFIG } from '@/config/api-config'
+import { MessageBubble } from '@/components/chat-message/MessageBubble'
+import { toast } from 'sonner'
 
-// Хелпер для извлечения текста из UIMessage
-function extractTextFromMessage(message: UIMessage): string {
-  return message.parts
-    .filter((part): part is { type: 'text'; text: string } => part.type === 'text')
-    .map(part => part.text)
-    .join('')
-}
-
-// Хелпер для конвертации TMessage в UIMessage
-function dbMessageToUIMessage(msg: TMessage): UIMessage {
-  return {
-    id: msg.id,
-    role: msg.role as 'user' | 'assistant',
-    parts: [{ type: 'text', text: msg.content }],
-  }
-}
 
 export default function ChatPage(
   { params }:
   { params: Promise<{ chatId: string }> }
 ) {
   const { chatId } = use(params)
-  const searchParams = useSearchParams()
-  const firstMessage = searchParams.get('firstMessage')
   const { user } = useSession()
+  const searchParams = useSearchParams()
   const [initialMessagesLoaded, setInitialMessagesLoaded] = useState(false)
+
+  const firstMessage = searchParams.get('firstMessage')
+  const [input, setInput] = useState<string>('')
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const bottomRef = useRef<HTMLDivElement>(null)
+  const initialized = useRef(false) 
+  
+  // useChat с нашим роутом
+  const {status, sendMessage, messages, setMessages, regenerate, error } = useChat({
+    transport: new DefaultChatTransport({
+      api: API_CONFIG.MESSAGES.POST.replace(':chatId', chatId)
+    }),
+  })
+  const isStreaming = status === 'submitted' || status === 'streaming';
+  
+  // Если переход с главной и первым сообщением
+  useEffect(() => {
+    if (firstMessage && !initialized.current && !initialMessagesLoaded) {
+      initialized.current = true
+      sendMessage({ text: firstMessage }) 
+    }
+  }, [firstMessage, sendMessage, initialMessagesLoaded]);
+
+  useRealtimeMessages(chatId);
 
   // Получение истории сообщений из БД
   const { data: historyMessages = [], isLoading } = useQuery({
@@ -52,57 +60,36 @@ export default function ChatPage(
     enabled: !!user?.id && !!chatId
   })
 
-  // Инициализируем useChat
-  const {
-    status,
-    sendMessage,
-    messages,
-    setMessages
-  } = useChat({
-    transport: new DefaultChatTransport({
-      api: API_CONFIG.MESSAGES.POST.replace(':chatId', chatId)
-    }),
-  })
-
-  // Синхронизация: когда история загрузилась, устанавливаем в useChat
+  // инициализируем истории из БД в хук useChat, история
   useEffect(() => {
     if (historyMessages.length > 0 && !initialMessagesLoaded) {
       setMessages(historyMessages.map(dbMessageToUIMessage))
       setInitialMessagesLoaded(true)
     }
-  }, [historyMessages, initialMessagesLoaded, setMessages])
+  }, [historyMessages, initialMessagesLoaded, setMessages]);
 
-  const [input, setInput] = useState<string>('')
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
-  const bottomRef = useRef<HTMLDivElement>(null)
-  const initialized = useRef(false)
-  const isStreaming = status === 'submitted' || status === 'streaming'
+  useEffect(()=>{    
+    if (error) toast.error(error?.message);
+  },[error]);
 
-  useRealtimeMessages(chatId)
-
-  // Если переход с главной и первым сообщением
-  useEffect(() => {
-    if (firstMessage && !initialized.current && initialMessagesLoaded) {
-      initialized.current = true
-      sendMessage({ text: firstMessage })
-    }
-  }, [firstMessage, sendMessage, initialMessagesLoaded])
-
+  // отправка сообщения
   const handleSubmit = (e?: React.FormEvent) => {
-    e?.preventDefault()
-    const trimmed = input.trim()
-    if (!trimmed || isStreaming) return
-    sendMessage({ text: trimmed })
-    setInput('')
+    e?.preventDefault();
+    const trimmed = input.trim();
+    if (!trimmed || isStreaming) return;
+    sendMessage({ text: trimmed });
+    setInput('');
   }
 
+  // отправка по Enter
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault()
-      handleSubmit()
+      e.preventDefault();
+      handleSubmit();
     }
   }
 
+  // авторазмер поля ввода
   useEffect(() => {
     const el = textareaRef.current
     if (!el) return
@@ -110,6 +97,7 @@ export default function ChatPage(
     el.style.height = Math.min(el.scrollHeight, 200) + 'px'
   }, [input])
 
+  // в конец
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
@@ -117,7 +105,7 @@ export default function ChatPage(
   return (
     <div className="relative flex flex-col h-full w-full">
       {/* Messages area */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto no-scrollbar">
         <div className="mx-auto max-w-3xl px-4 py-6 flex flex-col gap-6">
           {messages.length === 0 && !isLoading && (
             <div className="flex flex-col items-center justify-center h-48 text-center">
@@ -128,9 +116,18 @@ export default function ChatPage(
             </div>
           )}
 
-          {messages.map((msg) => (
-            <MessageBubble key={msg.id} message={msg} />
-          ))}
+          {messages.map((msg, index) => {
+            const isLastMessage = index === messages.length - 1
+            return (
+              <MessageBubble
+                key={msg.id}
+                message={msg}
+                status={status}
+                isLast={isLastMessage}
+                regenerate={regenerate}
+              />
+            )
+          })}
 
           <div ref={bottomRef} />
         </div>
@@ -202,83 +199,6 @@ export default function ChatPage(
           </p>
         </div>
       </div>
-    </div>
-  )
-}
-
-function MessageBubble({ message }: { message: UIMessage }) {
-  const [copied, setCopied] = useState(false)
-  const isUser = message.role === 'user'
-  const content = extractTextFromMessage(message)
-
-  const handleCopy = () => {
-    navigator.clipboard.writeText(content)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 1500)
-  }
-
-  return (
-    <div
-      data-testid={`message-${message.role}`}
-      className={cn('group flex gap-3', isUser ? 'justify-end' : 'justify-start')}
-    >
-      {!isUser && (
-        <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/10 border border-white/10">
-          <svg viewBox="0 0 28 28" fill="none" className="w-4 h-4">
-            <path d="M6 21V7h7.5a5 5 0 0 1 0 10H6M13.5 17H22" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </div>
-      )}
-
-      <div className={cn('flex flex-col gap-1 max-w-[80%]', isUser && 'items-end')}>
-        <div
-          className={cn(
-            'rounded-2xl px-4 py-3 text-sm leading-relaxed',
-            isUser
-              ? 'bg-[#2f2f2f] text-white rounded-br-sm'
-              : 'text-[#ececec] rounded-bl-sm'
-          )}
-        >
-          {content}
-        </div>
-
-        {/* Action buttons for assistant messages */}
-        {!isUser && content && (
-          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity pl-1">
-            <button
-              onClick={handleCopy}
-              className="flex h-7 w-7 items-center justify-center rounded-lg text-[#5a5a5a] hover:text-[#acacac] hover:bg-[#2f2f2f] transition-colors"
-              title={copied ? 'Скопировано!' : 'Скопировать'}
-            >
-              <Copy size={13} />
-            </button>
-            <button
-              className="flex h-7 w-7 items-center justify-center rounded-lg text-[#5a5a5a] hover:text-[#acacac] hover:bg-[#2f2f2f] transition-colors"
-              title="Полезно"
-            >
-              <ThumbsUp size={13} />
-            </button>
-            <button
-              className="flex h-7 w-7 items-center justify-center rounded-lg text-[#5a5a5a] hover:text-[#acacac] hover:bg-[#2f2f2f] transition-colors"
-              title="Не полезно"
-            >
-              <ThumbsDown size={13} />
-            </button>
-            <button
-              className="flex h-7 w-7 items-center justify-center rounded-lg text-[#5a5a5a] hover:text-[#acacac] hover:bg-[#2f2f2f] transition-colors"
-              title="Сгенерировать заново"
-            >
-              <RefreshCw size={13} />
-            </button>
-          </div>
-        )}
-      </div>
-
-      {isUser && (
-        <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#3f3f3f] border border-[#4f4f4f]">
-          <User size={14} className="text-[#8e8ea0]" />
-        </div>
-      )}
     </div>
   )
 }
