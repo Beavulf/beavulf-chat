@@ -21,7 +21,6 @@ export function MessageBubble(
     setTimeout(() => setCopied(false), 2000)
   }
 
-
   return (
     <div
       data-testid={`message-${message.role}`}
@@ -34,9 +33,9 @@ export function MessageBubble(
           <span className={cn(
             "flex items-center gap-2",
             "rounded-2xl px-4 py-3 text-sm leading-relaxed",
-            "bg-[#222] text-[#ececec]"
+            "bg-[#222] text-[gray]",
           )}>
-            <RefreshCcw className="animate-spin mr-2 w-4 h-4 inline-block" />
+            <RefreshCcw className="animate-spin mr-2 w-4 h-4 inline-block text-[gray]" />
             Подготавливаю ответ...
           </span>
         )}

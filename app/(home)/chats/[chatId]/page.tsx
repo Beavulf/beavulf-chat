@@ -1,12 +1,11 @@
 'use client'
 
-import { useState, useRef, useEffect, use } from 'react'
+import { useRef, useEffect, use } from 'react'
 import { useSearchParams } from 'next/navigation'
 import {
-  Send, Paperclip, Mic,
   Bot
 } from 'lucide-react'
-import { cn, dbMessageToUIMessage } from '@/lib/utils'
+import { dbMessageToUIMessage } from '@/lib/utils'
 import { useRealtimeMessages } from '@/hooks/realtime-messages'
 import { useQuery } from '@tanstack/react-query'
 import { getMessages } from '@/fetchers/message-api'
@@ -17,6 +16,7 @@ import { DefaultChatTransport } from 'ai'
 import { API_CONFIG } from '@/config/api-config'
 import { MessageBubble } from '@/components/chat-message/MessageBubble'
 import { toast } from 'sonner'
+import { MessageInputArea } from '@/components/MessageInputArea'
 
 
 export default function ChatPage(
@@ -26,18 +26,23 @@ export default function ChatPage(
   const { chatId } = use(params)
   const { user } = useSession()
   const searchParams = useSearchParams()
-  const [initialMessagesLoaded, setInitialMessagesLoaded] = useState(false)
-
-  const firstMessage = searchParams.get('firstMessage')
-  const [input, setInput] = useState<string>('')
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const initialMessagesLoaded = useRef(false)
   const bottomRef = useRef<HTMLDivElement>(null)
   const initialized = useRef(false) 
+  const firstMessage = searchParams.get('firstMessage')
   
-  // useChat с нашим роутом
+  // useChat с нашим роутом и отправкой одного сообщения в запросе
   const {status, sendMessage, messages, setMessages, regenerate, error } = useChat({
     transport: new DefaultChatTransport({
-      api: API_CONFIG.MESSAGES.POST.replace(':chatId', chatId)
+      api: API_CONFIG.MESSAGES.POST.replace(':chatId', chatId),
+      prepareSendMessagesRequest: ({id, messages}) => {
+        return {
+          body: {
+            id,
+            message: messages[messages.length - 1]
+          }
+        }
+      }
     }),
   })
   const isStreaming = status === 'submitted' || status === 'streaming';
@@ -57,14 +62,18 @@ export default function ChatPage(
     queryKey: [QUERY_KEYS.MESSAGES, chatId],
     queryFn: () => getMessages(chatId),
     staleTime: 300 * 60 * 1000,
-    enabled: !!user?.id && !!chatId
+    enabled: !!user?.id || !!chatId
   })
 
-  // инициализируем истории из БД в хук useChat, история
-  useEffect(() => {
-    if (historyMessages.length > 0 && !initialMessagesLoaded) {
-      setMessages(historyMessages.map(dbMessageToUIMessage))
-      setInitialMessagesLoaded(true)
+  // инициализируем истории из БД в хук useChat
+  useEffect(() => {   
+    if (historyMessages.length > 0 && !initialMessagesLoaded.current && !initialized.current) {
+      setMessages(historyMessages
+        .slice()
+        .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+        .map(dbMessageToUIMessage)
+      )      
+      initialMessagesLoaded.current = true;
     }
   }, [historyMessages, initialMessagesLoaded, setMessages]);
 
@@ -73,29 +82,12 @@ export default function ChatPage(
   },[error]);
 
   // отправка сообщения
-  const handleSubmit = (e?: React.FormEvent) => {
+  const handleSubmit = (text: string, e?: React.FormEvent) => {
     e?.preventDefault();
-    const trimmed = input.trim();
+    const trimmed = text.trim();
     if (!trimmed || isStreaming) return;
     sendMessage({ text: trimmed });
-    setInput('');
   }
-
-  // отправка по Enter
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSubmit();
-    }
-  }
-
-  // авторазмер поля ввода
-  useEffect(() => {
-    const el = textareaRef.current
-    if (!el) return
-    el.style.height = 'auto'
-    el.style.height = Math.min(el.scrollHeight, 200) + 'px'
-  }, [input])
 
   // в конец
   useEffect(() => {
@@ -136,64 +128,7 @@ export default function ChatPage(
       {/* Input area */}
       <div className="shrink-0 px-4 pb-5 pt-2">
         <div className="mx-auto max-w-3xl">
-          <form onSubmit={handleSubmit}>
-            <div className={cn(
-              'relative flex flex-col rounded-2xl bg-[#2f2f2f] border transition-colors shadow-lg',
-              isStreaming ? 'border-[#3f3f3f]' : 'border-[#3f3f3f] focus-within:border-[#555]'
-            )}>
-              <textarea
-                ref={textareaRef}
-                data-testid="input-message"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="Напишите сообщение..."
-                rows={1}
-                disabled={isStreaming}
-                className="resize-none bg-transparent px-4 pt-4 pb-3 text-sm text-white placeholder:text-[#5a5a5a] focus:outline-none leading-relaxed max-h-[200px] overflow-y-auto scrollbar-thin disabled:opacity-50"
-              />
-              <div className="flex items-center justify-between px-3 pb-3">
-                <div className="flex items-center gap-1">
-                  <button
-                    type="button"
-                    data-testid="button-attach"
-                    className="flex h-8 w-8 items-center justify-center rounded-lg text-[#5a5a5a] hover:text-[#acacac] hover:bg-[#3f3f3f] transition-colors"
-                    title="Прикрепить файл"
-                  >
-                    <Paperclip size={16} />
-                  </button>
-                  <button
-                    type="button"
-                    data-testid="button-mic"
-                    className="flex h-8 w-8 items-center justify-center rounded-lg text-[#5a5a5a] hover:text-[#acacac] hover:bg-[#3f3f3f] transition-colors"
-                    title="Голосовой ввод"
-                  >
-                    <Mic size={16} />
-                  </button>
-                </div>
-
-                <button
-                  type="submit"
-                  data-testid="button-send"
-                  disabled={!input.trim() || isStreaming}
-                  className={cn(
-                    'flex h-8 w-8 items-center justify-center rounded-lg transition-all duration-150',
-                    input.trim() && !isStreaming
-                      ? 'bg-white text-[#171717] hover:bg-white/90 shadow-sm'
-                      : 'bg-[#3f3f3f] text-[#5a5a5a] cursor-not-allowed'
-                  )}
-                  title="Отправить"
-                >
-                  {isStreaming ? (
-                    <span className="h-3.5 w-3.5 rounded-full border-2 border-[#5a5a5a] border-t-transparent animate-spin" />
-                  ) : (
-                    <Send size={14} />
-                  )}
-                </button>
-              </div>
-            </div>
-          </form>
-
+          <MessageInputArea handleSubmit={handleSubmit} isPendingOrStreaming={isStreaming}/>
           <p className="mt-2 text-center text-[11px] text-[#3f3f3f]">
             Beavulf может допускать ошибки. Проверяйте важную информацию.
           </p>

@@ -1,6 +1,6 @@
 import { NextResponse, NextRequest } from "next/server";
 import { messageService } from "@/service/message-service";
-import { extractTextFromMessage, handleError, isUuidV4 } from "@/lib/utils";
+import { dbMessageToUIMessage, extractTextFromMessage, handleError, isUuidV4 } from "@/lib/utils";
 import { streamText, convertToModelMessages } from "ai";
 import type { UIMessage } from "ai";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
@@ -31,7 +31,7 @@ export async function GET(
   }
 }
 
-// создание сообщения для чата по айди
+// отправка сообщения ИИ, получения ответа, запись в БД
 export async function POST(
     req: NextRequest,
     { params } : { params: Promise<{chatId: string}> }
@@ -39,22 +39,32 @@ export async function POST(
   try {
     const { chatId } = await params;
     isUuidV4(chatId);
-    
-    // Получаем сообщения от клиента
-    const { messages }: { messages: UIMessage[] } = await req.json();
-    
-    // Последнее сообщение — это новое сообщение пользователя
-    const lastUserMessage = messages[messages.length - 1];
-    
-    if (!lastUserMessage || lastUserMessage.role !== 'user') {
+
+    const { message } : { id: string, message: UIMessage } = await req.json();
+
+    if (!message || typeof message !== 'object') {
       return NextResponse.json(
-        { error: "Ожидается сообщение пользователя" },
+        { error: "Некорректное сообщение" },
         { status: 400 }
       );
     }
 
-    // Извлекаем текст из последнего сообщения пользователя
-    const userText = extractTextFromMessage(lastUserMessage);
+    // извлекаем текст из последнего сообщения пользователя
+    const userText = extractTextFromMessage(message);
+
+    if (!userText || userText.trim().length === 0) {
+      return NextResponse.json(
+        { error: "Текст сообщения не может быть пустым" },
+        { status: 400 }
+      );
+    }
+
+    if (userText.trim().length < 1) {
+      return NextResponse.json(
+        { error: "Текст сообщения слишком короткий" },
+        { status: 400 }
+      );
+    }
 
     if (userText.length > 1000) {
       return NextResponse.json(
@@ -63,26 +73,37 @@ export async function POST(
       );
     }
 
-    // Сохраняем сообщение пользователя в БД
+    // сохраняем сообщение пользователя в БД
     await messageService.createMessage(userText, 'user', chatId);
-
-    // Конвертируем UI сообщения в формат модели
-    const modelMessages = await convertToModelMessages(messages);
-
-    // Стримим ответ от AI
+    // поулчаем историю из БД
+    const dbMessages = await messageService.getMessagesByChatId(chatId);
+    const uiMessagesFromDb = dbMessages.map(dbMessageToUIMessage);
+    // конвертируем UI сообщения в формат модели
+    const modelMessages = await convertToModelMessages(uiMessagesFromDb);
+    
+    // делаем запрос к ИИ
     const result = streamText({
-      model: openrouter('qwen/qwen3.6-plus:free'),
+      model: openrouter('qwen/qwen3.6-plus'),
       messages: modelMessages,
-      onFinish: async ({ text }) => {
-        // Сохраняем ответ ассистента в БД
-        if (text) {
-          await messageService.createMessage(text, 'assistant', chatId);
-        }
-      },
+      onError: (error) => {
+        return error.message;
+      }
     });
 
+    result.consumeStream();
+
+    // стрим ответа ИИ
     return result.toUIMessageStreamResponse({
-      originalMessages: messages,
+      originalMessages: uiMessagesFromDb,
+      onFinish: async ({ responseMessage }) => {
+        // сохраняем ответ ассистента в БД
+        if (responseMessage) {
+          await messageService.createMessage(extractTextFromMessage(responseMessage), 'assistant', chatId);
+        }
+      },
+      onError: (error) => {
+        return `Ошибка при получении ответа от OpenRouter: ${(error?.message || 'Неизвестная ошибка')}`;
+      }
     });
   }
   catch(e) {

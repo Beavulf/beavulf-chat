@@ -3,12 +3,12 @@
 import { useState, useRef, useEffect } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
-import { Send, Paperclip, Mic, Sparkles, Zap, Globe, Code2 } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { Sparkles, Zap, Globe, Code2 } from 'lucide-react'
 import { useSession } from '@/hooks/use-session'
 import { createChat } from '@/fetchers/chats-api'
 import { QUERY_KEYS } from '@/constants/constants'
 import { ROUTE_CONFIG } from '@/config/route-config'
+import { MessageInputArea } from '@/components/MessageInputArea'
 
 const SUGGESTIONS = [
   {
@@ -34,8 +34,6 @@ const SUGGESTIONS = [
 ]
 
 export default function ChatsPage() {
-  const [message, setMessage] = useState('')
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
   const router = useRouter()
   const queryClient = useQueryClient();
   const { user } = useSession();
@@ -52,33 +50,18 @@ export default function ChatsPage() {
   })
 
   // подтверждение отправки сообщения
-  const handleSubmit = (e?: React.FormEvent) => {
+  const handleSubmit = (text: string, e?: React.FormEvent) => {
     e?.preventDefault();
-    const trimmed = message.trim();
+    const trimmed = text.trim();
     if (!trimmed || createMutation.isPending) return;
     createMutation.mutate(trimmed);
   }
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault()
-      handleSubmit()
-    }
-  }
-
-  // авторазмер поля ввода
-  useEffect(() => {
-    const el = textareaRef.current;
-    if (!el) return;
-    el.style.height = 'auto';
-    el.style.height = Math.min(el.scrollHeight, 200) + 'px';
-  }, [message]);
-
   // выбрать шаблон сообщения
-  const handleSuggestion = (title: string, subtitle: string) => {
-    setMessage(`${title}: ${subtitle}`)
-    textareaRef.current?.focus()
-  }
+  // const handleSuggestion = (title: string, subtitle: string) => {
+    // setMessage(`${title}: ${subtitle}`)
+  //   textareaRef.current?.focus()
+  // }
 
   return (
     <div className="relative flex flex-col items-center justify-center h-full w-full">
@@ -116,7 +99,7 @@ export default function ChatsPage() {
             <button
               key={title}
               data-testid={`button-suggestion-${title}`}
-              onClick={() => handleSuggestion(title, subtitle)}
+              // onClick={() => handleSuggestion(title, subtitle)}
               className="flex items-start gap-3 rounded-xl bg-[#2f2f2f] hover:bg-[#383838] border border-[#3f3f3f] hover:border-[#4f4f4f] px-4 py-3.5 text-left transition-all duration-150 group"
             >
               <Icon size={18} className="mt-0.5 shrink-0 text-[#8e8ea0] group-hover:text-[#acacac] transition-colors" />
@@ -127,9 +110,8 @@ export default function ChatsPage() {
             </button>
           ))}
         </div>
-
-        {/* поле ввода */}
-        <form onSubmit={handleSubmit} className="w-full">
+          <MessageInputArea handleSubmit={handleSubmit} isPendingOrStreaming={createMutation.isPending}/>
+        {/* <form onSubmit={handleSubmit} className="w-full">
           <div className="relative flex flex-col rounded-2xl bg-[#2f2f2f] border border-[#3f3f3f] focus-within:border-[#555] transition-colors shadow-lg">
             <textarea
               ref={textareaRef}
@@ -142,17 +124,15 @@ export default function ChatsPage() {
               className="resize-none bg-transparent px-4 pt-4 pb-3 text-sm text-white placeholder:text-[#5a5a5a] focus:outline-none leading-relaxed max-h-[200px] overflow-y-auto scrollbar-thin"
             />
 
-            {/* Toolbar */}
             <div className="flex items-center justify-between px-3 pb-3">
               <div className="flex items-center gap-1">
-                <button
-                  type="button"
+                <Input
+                  type="file"
                   data-testid="button-attach"
-                  className="flex h-8 w-8 items-center justify-center rounded-lg text-[#5a5a5a] hover:text-[#acacac] hover:bg-[#3f3f3f] transition-colors"
+                  className="flex h-8 w-80 items-center justify-center rounded-lg text-[#5a5a5a] hover:text-[#acacac] hover:bg-[#3f3f3f] transition-colors"
                   title="Прикрепить файл"
                 >
-                  <Paperclip size={16} />
-                </button>
+                </Input><Paperclip size={16} />
                 <button
                   type="button"
                   data-testid="button-mic"
@@ -183,7 +163,7 @@ export default function ChatsPage() {
               </button>
             </div>
           </div>
-        </form>
+        </form> */}
 
         {/* дисклеймер */}
         <p className="mt-4 text-center text-[11px] text-[#3f3f3f] leading-relaxed">

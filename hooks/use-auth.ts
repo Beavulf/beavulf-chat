@@ -1,3 +1,5 @@
+'use client'
+
 import { QUERY_KEYS } from "@/constants/constants";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { signIn, signOut, signUp } from "@/fetchers/auth-api";
