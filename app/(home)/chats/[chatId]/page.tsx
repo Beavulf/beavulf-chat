@@ -55,7 +55,7 @@ export default function ChatPage(
     }
   }, [firstMessage, sendMessage, initialMessagesLoaded]);
 
-  useRealtimeMessages(chatId);
+  useRealtimeMessages(chatId, setMessages, user?.id);
 
   // Получение истории сообщений из БД
   const { data: historyMessages = [], isLoading } = useQuery({
