@@ -38,40 +38,40 @@ export type Database = {
         }
         Relationships: []
       }
-      files: {
+      "message-files": {
         Row: {
-          chat_id: string
+          bucket: string
           created_at: string
           id: string
+          message_id: string
           original_name: string
           storage_path: string
           type: string
-          user_id: string
         }
         Insert: {
-          chat_id: string
+          bucket: string
           created_at?: string
           id?: string
+          message_id: string
           original_name: string
           storage_path: string
           type: string
-          user_id: string
         }
         Update: {
-          chat_id?: string
+          bucket?: string
           created_at?: string
           id?: string
+          message_id?: string
           original_name?: string
           storage_path?: string
           type?: string
-          user_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "files_chat_id_fkey"
-            columns: ["chat_id"]
+            foreignKeyName: "files_message_id_fkey"
+            columns: ["message_id"]
             isOneToOne: false
-            referencedRelation: "chats"
+            referencedRelation: "messages"
             referencedColumns: ["id"]
           },
         ]

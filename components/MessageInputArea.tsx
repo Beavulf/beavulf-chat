@@ -1,21 +1,32 @@
 'use client'
 
 import { cn } from "@/lib/utils";
-import { Mic, Paperclip, Send } from "lucide-react";
+import { Paperclip, Send, Square } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 export function MessageInputArea(
   {
     handleSubmit,
-    isPendingOrStreaming
+    isPendingOrStreaming,
+    suggestionMsg
   }: 
   {
-    handleSubmit: (text:string, e: React.FormEvent) => void,
-    isPendingOrStreaming: boolean
+    handleSubmit: (text:string, e?: React.FormEvent) => void,
+    isPendingOrStreaming: boolean,
+    suggestionMsg?: string
   }
 ) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [input, setInput] = useState<string>('');
+  const [file, setFile] = useState<File | null>(null);
+
+  const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFile(e.target.files?.[0] ?? null);
+  };
+
+  useEffect(() => {
+    if (suggestionMsg) setInput(suggestionMsg);
+  },[suggestionMsg]);
 
   // авторазмер поля ввода
   useEffect(() => {
@@ -32,7 +43,29 @@ export function MessageInputArea(
       handleSubmit(input, e);
       setInput('');
     }
-  }
+  };
+
+  // const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  //   e.preventDefault();
+  //   if (!input.trim() && !file) return;
+
+  //   let fileMeta: ChatPayload['message']['file'] | undefined;
+
+  //   if (file) {
+  //     const form = new FormData();
+  //     form.append('file', file);
+  //     const res = await fetch('/api/upload', { method: 'POST', body: form });
+  //     const data = await res.json();
+  //     fileMeta = {
+  //       name: file.name,
+  //       url: data.url,      // публичный или подписанный URL
+  //       type: file.type,
+  //     };
+  //   }
+  //   handleSubmit(input, e);
+  //   setInput('');
+  // };
+
 
   return (
     <form onSubmit={(e)=>{handleSubmit(input, e); setInput('');}} className="w-full">
@@ -55,38 +88,32 @@ export function MessageInputArea(
         />
         <div className="flex items-center justify-between px-3 pb-3">
           <div className="flex items-center gap-1">
+            <input type="file" onChange={onFileChange}></input>
             <button
               type="button"
               data-testid="button-attach"
               className="flex h-8 w-8 items-center justify-center rounded-lg text-[#5a5a5a] hover:text-[#acacac] hover:bg-[#3f3f3f] transition-colors"
               title="Прикрепить файл"
+              disabled={isPendingOrStreaming}
             >
               <Paperclip size={16} />
-            </button>
-            <button
-              type="button"
-              data-testid="button-mic"
-              className="flex h-8 w-8 items-center justify-center rounded-lg text-[#5a5a5a] hover:text-[#acacac] hover:bg-[#3f3f3f] transition-colors"
-              title="Голосовой ввод"
-            >
-              <Mic size={16} />
             </button>
           </div>
 
           <button
             type="submit"
             data-testid="button-send"
-            disabled={!input.trim() || isPendingOrStreaming}
+            disabled={!input.trim() && !isPendingOrStreaming}
             className={cn(
-              'flex h-8 w-8 items-center justify-center rounded-lg transition-all duration-150',
-              input.trim() && !isPendingOrStreaming
+              'flex h-8 w-8 items-center justify-center rounded-lg transition-all duration-150 cursor-pointer',
+              (input.trim() && !isPendingOrStreaming) || (!input.trim() && isPendingOrStreaming)
                 ? 'bg-white text-[#171717] hover:bg-white/90 shadow-sm'
-                : 'bg-[#3f3f3f] text-[#5a5a5a] cursor-not-allowed'
+                : 'bg-[#3f3f3f] text-[#5a5a5a] cursor-not-allowed', 
             )}
-            title="Отправить"
+            title={isPendingOrStreaming ? 'Остановить' : 'Отправить'}
           >
             {isPendingOrStreaming ? (
-              <span className="h-3.5 w-3.5 rounded-full border-2 border-[#5a5a5a] border-t-transparent animate-spin" />
+              <Square size={14} onClick={()=>handleSubmit('')}/>
             ) : (
               <Send size={14} />
             )}

@@ -32,7 +32,7 @@ export default function ChatPage(
   const firstMessage = searchParams.get('firstMessage')
   
   // useChat с нашим роутом и отправкой одного сообщения в запросе
-  const {status, sendMessage, messages, setMessages, regenerate, error } = useChat({
+  const {status, sendMessage, messages, setMessages, regenerate, error, stop } = useChat({
     transport: new DefaultChatTransport({
       api: API_CONFIG.MESSAGES.POST.replace(':chatId', chatId),
       prepareSendMessagesRequest: ({id, messages}) => {
@@ -49,20 +49,19 @@ export default function ChatPage(
   
   // Если переход с главной и первым сообщением
   useEffect(() => {
-    if (firstMessage && !initialized.current && !initialMessagesLoaded) {
+    if (firstMessage && !initialized.current && !initialMessagesLoaded.current) {
       initialized.current = true
       sendMessage({ text: firstMessage }) 
     }
   }, [firstMessage, sendMessage, initialMessagesLoaded]);
 
-  useRealtimeMessages(chatId, setMessages, user?.id);
+  useRealtimeMessages(chatId, setMessages);
 
   // Получение истории сообщений из БД
   const { data: historyMessages = [], isLoading } = useQuery({
     queryKey: [QUERY_KEYS.MESSAGES, chatId],
     queryFn: () => getMessages(chatId),
-    staleTime: 300 * 60 * 1000,
-    enabled: !!user?.id || !!chatId
+    enabled: !!chatId
   })
 
   // инициализируем истории из БД в хук useChat
@@ -77,27 +76,30 @@ export default function ChatPage(
     }
   }, [historyMessages, initialMessagesLoaded, setMessages]);
 
+  // отображение ошибки из useChat
   useEffect(()=>{    
     if (error) toast.error(error?.message);
   },[error]);
 
   // отправка сообщения
-  const handleSubmit = (text: string, e?: React.FormEvent) => {
+  const handleSubmit = async (text: string, e?: React.FormEvent) => {
     e?.preventDefault();
+    if (isStreaming) await stop();
     const trimmed = text.trim();
     if (!trimmed || isStreaming) return;
     sendMessage({ text: trimmed });
   }
 
-  // в конец
+  // прокрутить в конец при открытии страницы
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
   return (
     <div className="relative flex flex-col h-full w-full">
-      {/* Messages area */}
+
       <div className="flex-1 overflow-y-auto no-scrollbar">
+
         <div className="mx-auto max-w-3xl px-4 py-6 flex flex-col gap-6">
           {messages.length === 0 && !isLoading && (
             <div className="flex flex-col items-center justify-center h-48 text-center">
@@ -125,7 +127,6 @@ export default function ChatPage(
         </div>
       </div>
 
-      {/* Input area */}
       <div className="shrink-0 px-4 pb-5 pt-2">
         <div className="mx-auto max-w-3xl">
           <MessageInputArea handleSubmit={handleSubmit} isPendingOrStreaming={isStreaming}/>
@@ -134,6 +135,7 @@ export default function ChatPage(
           </p>
         </div>
       </div>
+
     </div>
   )
 }

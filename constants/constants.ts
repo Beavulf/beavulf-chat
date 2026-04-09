@@ -22,7 +22,8 @@ export const QUERY_KEYS = {
   CHATS: 'chats',
   AUTH: 'auth',
   SESSION: 'session',
-  MESSAGES: 'messages'
+  MESSAGES: 'messages',
+  MESSAGE_FILES: 'message-files',
 } as const
 
 export type QueryKeys = typeof QUERY_KEYS[keyof typeof QUERY_KEYS]

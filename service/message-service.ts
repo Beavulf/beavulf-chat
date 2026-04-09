@@ -51,4 +51,10 @@ export const messageService = {
     
     return messages;
   },
+
+  async getMessageById(messageId: string): Promise<TMessage | null> {
+    const message = await messageRepository.getMessageById(messageId);
+    // СДЕЛАТЬ ПРОВЕРКУ
+    return message;
+  }
 }

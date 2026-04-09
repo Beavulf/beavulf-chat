@@ -85,19 +85,23 @@ export async function POST(
     const result = streamText({
       model: openrouter('qwen/qwen3.6-plus'),
       messages: modelMessages,
+      abortSignal: req.signal,
       onError: (error) => {
         return error.message;
       }
     });
 
-    result.consumeStream();
-
     // стрим ответа ИИ
     return result.toUIMessageStreamResponse({
       originalMessages: uiMessagesFromDb,
-      onFinish: async ({ responseMessage }) => {
-        // сохраняем ответ ассистента в БД
+      onFinish: async ({ responseMessage, finishReason }) => {
+        if (finishReason === 'error') {
+          return;
+        }
         if (responseMessage) {
+          if (responseMessage.parts.length < 1) {
+            return;
+          }
           await messageService.createMessage(extractTextFromMessage(responseMessage), 'assistant', chatId);
         }
       },

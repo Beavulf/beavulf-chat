@@ -8,9 +8,9 @@ export type TMessage = Database["public"]["Tables"]["messages"]["Row"];
 export type TMessageUpdate = Database["public"]["Tables"]["messages"]["Update"];
 export type TMessageInsert = Database["public"]["Tables"]["messages"]["Insert"];
 
-export type TFile = Database["public"]["Tables"]["files"]["Row"];
-export type TFileUpdate = Database["public"]["Tables"]["files"]["Update"];
-export type TFileInsert = Database["public"]["Tables"]["files"]["Insert"];
+export type TMessageFile = Database["public"]["Tables"]["message-files"]["Row"];
+export type TMessageFileUpdate = Database["public"]["Tables"]["message-files"]["Update"];
+export type TMessageFileInsert = Database["public"]["Tables"]["message-files"]["Insert"];
 
 export type TUserLimit = Database["public"]["Tables"]["user_limits"]["Row"];
 export type TUserLimitUpdate = Database["public"]["Tables"]["user_limits"]["Update"];

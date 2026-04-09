@@ -2,7 +2,7 @@ import { useEffect, useMemo } from "react";
 import { createClient } from "@/lib/client";
 import { useQueryClient } from "@tanstack/react-query";
 import type { RealtimePostgresChangesPayload } from "@supabase/supabase-js";
-import type { UIMessage } from "@ai-sdk/react"; // или твой тип
+import type { UIMessage } from "@ai-sdk/react";
 import { QUERY_KEYS } from "@/constants/constants";
 import { dbMessageToUIMessage } from "@/lib/utils";
 import type { TMessage } from "@/types/db-types";
@@ -14,7 +14,6 @@ type SetMessages = (
 export function useRealtimeMessages(
   chatId: string,
   setChatMessages?: SetMessages,
-  currentUserId?: string
 ) {
   const queryClient = useQueryClient();
   const supabase = useMemo(() => createClient(), []);
@@ -24,20 +23,31 @@ export function useRealtimeMessages(
 
     const onChange = (payload: RealtimePostgresChangesPayload<TMessage>) => {
       if (payload.eventType === "INSERT" && payload.new) {
-        // Обновляем React Query кэш
         queryClient.setQueryData<TMessage[]>(
           [QUERY_KEYS.MESSAGES, chatId],
-          (old) => [payload.new!, ...(old ?? [])]
+          (old) => {
+            // Проверка на дубликаты по id
+            if (old?.some((msg) => msg.id === payload.new!.id)) {
+              return old;
+            }
+            return [payload.new!, ...(old ?? [])];
+          }
         );
 
         // Синхронизируем useChat стейт
-        const isOwnMessage = payload.new.sender_id === currentUserId;
-    if (!isOwnMessage) {
-      setChatMessages?.((prev) => {
-        if (prev.some((m) => m.id === payload.new!.id)) return prev;
-        return [...prev, dbMessageToUIMessage(payload.new!)];
-      });
-    }
+          setChatMessages?.((prev) => {
+            const newMsg = dbMessageToUIMessage(payload.new!);
+            if (prev.some((m) => m.id === newMsg.id)) return prev;
+            // Проверка: текст нового сообщения не совпадает с текстом последнего старого
+            const lastMsg = prev[prev.length - 1];
+            if (lastMsg && lastMsg.parts && newMsg.parts) {
+              const lastText = lastMsg.parts.map(p => p.type === 'text' ? p.text : '').join('');
+              const newText = newMsg.parts.map(p => p.type === 'text' ? p.text : '').join('');
+              if (lastText === newText) return prev;
+            }
+            return [...prev, newMsg];
+          });
+  
         return;
       }
 
@@ -73,7 +83,11 @@ export function useRealtimeMessages(
         table: QUERY_KEYS.MESSAGES,
         filter: `chat_id=eq.${chatId}`,
       }, onChange)
-      .subscribe();
+      .subscribe((status)=>{
+        if (status === "CHANNEL_ERROR") {
+          console.error("Ошибка при подписке на канал")
+        }
+      });
 
     return () => { void supabase.removeChannel(channel); };
   }, [chatId, queryClient, supabase, setChatMessages]);
