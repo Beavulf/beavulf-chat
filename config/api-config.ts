@@ -15,5 +15,10 @@ export const API_CONFIG = {
     MESSAGES: {
         GET:"/api/chats/:chatId/messages", //все сообщения чата по айди
         POST:"/api/chats/:chatId/messages", //создание сообщения для чата по айди
+    },
+    FILES: {
+        GET: "/api/files/:id",
+        DELETE: "/api/files/:id",
+        UPLOAD: "/api/upload"
     }
 }

@@ -13,6 +13,10 @@ export const messageService = {
     const user = await authService.getUser();
     const chat = await chatService.getChatById(chatId);
 
+    if (user.id !== chat.user_id) {
+      throw new BusinessError("Нет доступа к чату", ERRORS_CODES.FORBIDDEN);
+    }
+
     if (role === "user") {
       await userLimitService.ensureCanAskQuestion(user.id, !!user.is_anonymous);
     }
@@ -28,17 +32,7 @@ export const messageService = {
 
   // изменение сообщения с проверкой доступа
   async updateMessageById(messageId: string, content: string): Promise<void> {
-    const user = await authService.getUser();
-    const message = await messageRepository.getMessageById(messageId);
-
-    if (!message) {
-      throw new BusinessError("Сообщение не найдено", ERRORS_CODES.NOT_FOUND);
-    }
-
-    if (message.user_id !== user.id) {
-      throw new BusinessError("Нет доступа к данному сообщению", ERRORS_CODES.FORBIDDEN);
-    }
-
+    const message = await this.getMessageById(messageId);
     await messageRepository.updateMessageById(message.id, content);
 
     return;
@@ -46,15 +40,28 @@ export const messageService = {
 
   // получение сообщений чата
   async getMessagesByChatId(chatId: string): Promise<TMessage[]> {
+    const user = await authService.getUser();
     const chat = await chatService.getChatById(chatId);
+    
+    if (user.id !== chat.user_id) {
+      throw new BusinessError("Нет доступа к чату", ERRORS_CODES.FORBIDDEN);
+    }
     const messages = await messageRepository.getMessagesByChatId(chat.id);
     
     return messages;
   },
 
-  async getMessageById(messageId: string): Promise<TMessage | null> {
+  async getMessageById(messageId: string): Promise<TMessage> {
+    const user = await authService.getUser();
     const message = await messageRepository.getMessageById(messageId);
-    // СДЕЛАТЬ ПРОВЕРКУ
+
+    if (!message) {
+      throw new BusinessError("Сообщение не найдено", ERRORS_CODES.NOT_FOUND);
+    }
+    if (message.user_id !== user.id) {
+      throw new BusinessError("Нет доступа к данному сообщению", ERRORS_CODES.FORBIDDEN);
+    }
+
     return message;
   }
 }

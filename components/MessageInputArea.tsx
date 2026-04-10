@@ -1,8 +1,24 @@
 'use client'
 
+import { createSignedUrl, uploadAttachment } from "@/fetchers/files-api";
 import { cn } from "@/lib/utils";
+import { useMutation } from "@tanstack/react-query";
 import { Paperclip, Send, Square } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
+
+type ChatPayload = {
+  id: string;
+  message: {
+    role: 'user';
+    content: string;
+    file?: {
+      name: string;
+      url: string;
+      type: string;
+    };
+  };
+};
 
 export function MessageInputArea(
   {
@@ -11,7 +27,7 @@ export function MessageInputArea(
     suggestionMsg
   }: 
   {
-    handleSubmit: (text:string, e?: React.FormEvent) => void,
+    handleSubmit: ({input, e, file}:{input: string, e?: React.FormEvent, file?: ChatPayload['message']['file']}) => void,
     isPendingOrStreaming: boolean,
     suggestionMsg?: string
   }
@@ -20,8 +36,43 @@ export function MessageInputArea(
   const [input, setInput] = useState<string>('');
   const [file, setFile] = useState<File | null>(null);
 
-  const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const uploadFileMutation = useMutation({
+    mutationFn: uploadAttachment,
+    onError: (e) => {
+      toast.error(`Ошибка при загрузке файла на сервер: ${e.message}`)
+    }
+  });
+
+  const createSignedUrlMutation = useMutation({
+    mutationFn: createSignedUrl,
+    onError: (e) => {
+      toast.error(`Ошибка при получении приватной ссылки на файл: ${e.message}`)
+    }
+  });
+
+  const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     setFile(e.target.files?.[0] ?? null);
+  };
+
+  const onSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!input.trim() && !file) return;
+
+    let fileMeta: ChatPayload['message']['file'] | undefined;
+
+    if (file) {
+      const messageFileData = await uploadFileMutation.mutateAsync({ file });
+      const signedUrl = await createSignedUrlMutation.mutateAsync({fileDataId: messageFileData.id})
+      fileMeta = {
+        name: signedUrl.name,
+        url: signedUrl.url,      // подписанный URL
+        type: messageFileData.type,
+      };
+    }
+
+    handleSubmit({ input, file: fileMeta });
+    setInput('');
+    setFile(null);
   };
 
   useEffect(() => {
@@ -40,35 +91,13 @@ export function MessageInputArea(
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      handleSubmit(input, e);
+      handleSubmit({input, e});
       setInput('');
     }
   };
 
-  // const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-  //   e.preventDefault();
-  //   if (!input.trim() && !file) return;
-
-  //   let fileMeta: ChatPayload['message']['file'] | undefined;
-
-  //   if (file) {
-  //     const form = new FormData();
-  //     form.append('file', file);
-  //     const res = await fetch('/api/upload', { method: 'POST', body: form });
-  //     const data = await res.json();
-  //     fileMeta = {
-  //       name: file.name,
-  //       url: data.url,      // публичный или подписанный URL
-  //       type: file.type,
-  //     };
-  //   }
-  //   handleSubmit(input, e);
-  //   setInput('');
-  // };
-
-
   return (
-    <form onSubmit={(e)=>{handleSubmit(input, e); setInput('');}} className="w-full">
+    <form onSubmit={onSubmit} className="w-full">
       <div className={cn(
         'relative flex flex-col rounded-2xl bg-[#2f2f2f] border transition-colors shadow-lg',
         isPendingOrStreaming ? 'border-[#3f3f3f]' : 'border-[#3f3f3f] focus-within:border-[#555]'
@@ -113,7 +142,7 @@ export function MessageInputArea(
             title={isPendingOrStreaming ? 'Остановить' : 'Отправить'}
           >
             {isPendingOrStreaming ? (
-              <Square size={14} onClick={()=>handleSubmit('')}/>
+              <Square size={14} onClick={()=>handleSubmit({input:''})}/>
             ) : (
               <Send size={14} />
             )}

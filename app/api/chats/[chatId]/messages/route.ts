@@ -4,6 +4,7 @@ import { dbMessageToUIMessage, extractTextFromMessage, handleError, isUuidV4 } f
 import { streamText, convertToModelMessages } from "ai";
 import type { UIMessage } from "ai";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
+import { enrichMessagesWithFileContent } from "./[messageId]/_helper";
 
 const openrouter = createOpenAICompatible({
   name: 'openrouter',
@@ -80,11 +81,13 @@ export async function POST(
     const uiMessagesFromDb = dbMessages.map(dbMessageToUIMessage);
     // конвертируем UI сообщения в формат модели
     const modelMessages = await convertToModelMessages(uiMessagesFromDb);
+
+    const messagesWithFile = enrichMessagesWithFileContent(modelMessages);
     
     // делаем запрос к ИИ
     const result = streamText({
       model: openrouter('qwen/qwen3.6-plus'),
-      messages: modelMessages,
+      messages: messagesWithFile,
       abortSignal: req.signal,
       onError: (error) => {
         return error.message;

@@ -82,12 +82,28 @@ export default function ChatPage(
   },[error]);
 
   // отправка сообщения
-  const handleSubmit = async (text: string, e?: React.FormEvent) => {
+  const handleSubmit = async ({input, e, file}:{input: string, e?: React.FormEvent, file? :{name: string; url: string; type: string}}) => {
+    // e?.preventDefault();
+    // if (isStreaming) await stop();
+    // const trimmed = text.trim();
+    // if (!trimmed || isStreaming) return;
+    // sendMessage({ text: trimmed });
     e?.preventDefault();
     if (isStreaming) await stop();
-    const trimmed = text.trim();
-    if (!trimmed || isStreaming) return;
-    sendMessage({ text: trimmed });
+    const trimmed = input.trim();
+    if (!trimmed && !file || isStreaming) return;
+
+    sendMessage({
+      content: [
+        { type: 'text', text: trimmed },
+        file && {
+          type: 'file',
+          url: file.url,
+          name: file.name,
+          mimeType: file.type,
+        },
+      ].filter(Boolean),
+    } as any);
   }
 
   // прокрутить в конец при открытии страницы
