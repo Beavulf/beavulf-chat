@@ -1,8 +1,7 @@
 import { API_CONFIG } from "@/config/api-config";
 import { isResOk } from "@/lib/utils";
-import type { TMessageFile } from "@/types/db-types";
 
-export async function uploadAttachment({ file }:{ file: File }): Promise<TMessageFile> {
+export async function uploadAttachment({ file }:{ file: File }): Promise<{url: string; name: string; type: string; path: string}> {
   const formData = new FormData();
   formData.append('file', file);
 
@@ -12,17 +11,7 @@ export async function uploadAttachment({ file }:{ file: File }): Promise<TMessag
   });
 
   isResOk(res);
-  const { messageFileData } : { messageFileData: TMessageFile } = await res.json();
+  const { file: uploaded } : { file: {url: string; name: string; type: string; path: string} } = await res.json();
 
-  return messageFileData;
-}
-
-export async function createSignedUrl({fileDataId}:{fileDataId: string}): Promise<{url: string, name: string}> {
-  const res = await fetch(API_CONFIG.FILES.GET.replace(':id', fileDataId),{
-    method: 'POST',
-  })
-  isResOk(res);
-  const { url, name } : { url: string, name: string } = await res.json();
-
-  return { url, name };
+  return uploaded;
 }

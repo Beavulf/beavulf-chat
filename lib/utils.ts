@@ -6,7 +6,6 @@ import { validate, version } from "uuid";
 import { ERRORS_CODES } from "@/constants/constants";
 import type { UIMessage } from "ai";
 import type { TMessage } from "@/types/db-types";
-import { toast } from "sonner";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))

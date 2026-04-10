@@ -10,9 +10,8 @@ import { useRealtimeMessages } from '@/hooks/realtime-messages'
 import { useQuery } from '@tanstack/react-query'
 import { getMessages } from '@/fetchers/message-api'
 import { QUERY_KEYS } from '@/constants/constants'
-import { useSession } from '@/hooks/use-session'
 import { useChat } from '@ai-sdk/react'
-import { DefaultChatTransport } from 'ai'
+import { DefaultChatTransport, type UIMessage } from 'ai'
 import { API_CONFIG } from '@/config/api-config'
 import { MessageBubble } from '@/components/chat-message/MessageBubble'
 import { toast } from 'sonner'
@@ -24,7 +23,6 @@ export default function ChatPage(
   { params: Promise<{ chatId: string }> }
 ) {
   const { chatId } = use(params)
-  const { user } = useSession()
   const searchParams = useSearchParams()
   const initialMessagesLoaded = useRef(false)
   const bottomRef = useRef<HTMLDivElement>(null)
@@ -46,6 +44,8 @@ export default function ChatPage(
     }),
   })
   const isStreaming = status === 'submitted' || status === 'streaming';
+  const showAssistantPlaceholder =
+    isStreaming && messages.length > 0 && messages[messages.length - 1]?.role === 'user';
   
   // Если переход с главной и первым сообщением
   useEffect(() => {
@@ -83,27 +83,31 @@ export default function ChatPage(
 
   // отправка сообщения
   const handleSubmit = async ({input, e, file}:{input: string, e?: React.FormEvent, file? :{name: string; url: string; type: string}}) => {
-    // e?.preventDefault();
-    // if (isStreaming) await stop();
-    // const trimmed = text.trim();
-    // if (!trimmed || isStreaming) return;
-    // sendMessage({ text: trimmed });
     e?.preventDefault();
     if (isStreaming) await stop();
-    const trimmed = input.trim();
-    if (!trimmed && !file || isStreaming) return;
 
-    sendMessage({
-      content: [
-        { type: 'text', text: trimmed },
-        file && {
-          type: 'file',
-          url: file.url,
-          name: file.name,
-          mimeType: file.type,
-        },
-      ].filter(Boolean),
-    } as any);
+    const trimmed = input.trim();
+    if (!trimmed && !file) return;
+
+    const parts: UIMessage['parts'] = [];
+
+    if (trimmed) {
+      parts.push({ type: 'text', text: trimmed });
+    }
+
+    if (file) {
+      parts.push({
+        type: 'file',
+        url: file.url,
+        mediaType: file.type,
+        filename: file.name,
+      } as any);
+    }
+
+    // отправляем полноценное UI‑сообщение (useChat сам добавит id/role)
+    console.log(parts);
+    
+    await sendMessage({ parts });
   }
 
   // прокрутить в конец при открытии страницы
@@ -138,6 +142,20 @@ export default function ChatPage(
               />
             )
           })}
+
+          {showAssistantPlaceholder && (
+            <MessageBubble
+              key="assistant-placeholder"
+              message={{
+                id: "assistant-placeholder",
+                role: "assistant",
+                parts: [{ type: "text", text: "" }],
+              }}
+              status={status}
+              isLast
+              regenerate={regenerate}
+            />
+          )}
 
           <div ref={bottomRef} />
         </div>

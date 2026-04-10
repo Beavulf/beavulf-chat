@@ -28,6 +28,26 @@ export const fileService = {
     return fileData;
   },
 
+  async uploadTempFileAndGetSignedUrl(file: File): Promise<{ url: string; name: string; type: string; path: string }> {
+    const user = await authService.getUser();
+
+    const safeName = file.name.replace(/[^\p{L}\p{N}._-]+/gu, '-');
+    const path = `${user.id}/tmp/${randomUUID()}-${safeName}`;
+
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
+    await this.uploadFile({ path, type: file.type, buffer });
+
+    const signedUrl = await this.createSignedUrl(path);
+    if (!signedUrl) {
+      await this.deleteFileInStorage(path);
+      throw new BusinessError('Не удалось создать подписанную ссылку', ERRORS_CODES.NOT_FOUND);
+    }
+
+    return { url: signedUrl, name: file.name, type: file.type, path };
+  },
+
   async insertMessageFileData(file: TMessageFileInsert) {
     await messageService.getMessageById(file.message_id);
     const fileData = await fileRepository.insertMessageFileData(file);

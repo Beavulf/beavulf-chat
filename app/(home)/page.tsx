@@ -58,9 +58,9 @@ export default function ChatsPage() {
   })
 
   // подтверждение отправки сообщения
-  const handleSubmit = async (text: string, e?: React.FormEvent) => {
+  const handleSubmit = async ({input,e}:{input: string, e?: React.FormEvent}) => {
     e?.preventDefault();
-    const trimmed = text.trim();
+    const trimmed = input.trim();
     if (!trimmed || createMutation.isPending) return;
 
     await createMutation.mutateAsync(trimmed);

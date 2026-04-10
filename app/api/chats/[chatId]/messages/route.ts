@@ -32,6 +32,14 @@ export async function GET(
   }
 }
 
+function hasUsableParts(message: UIMessage) {
+  return message.parts.some(
+    (part: any) =>
+      (part.type === "text" && part.text?.trim()) ||
+      part.type === "file"
+  );
+}
+
 // отправка сообщения ИИ, получения ответа, запись в БД
 export async function POST(
     req: NextRequest,
@@ -42,16 +50,23 @@ export async function POST(
     isUuidV4(chatId);
 
     const { message } : { id: string, message: UIMessage } = await req.json();
-
-    if (!message || typeof message !== 'object') {
+    
+    if (!message || typeof message !== "object" || !Array.isArray(message.parts)) {
       return NextResponse.json(
         { error: "Некорректное сообщение" },
         { status: 400 }
       );
-    }
-
+    }  
+    
     // извлекаем текст из последнего сообщения пользователя
     const userText = extractTextFromMessage(message);
+    
+    if (!hasUsableParts(message)) {
+      return NextResponse.json(
+        { error: "Сообщение должно содержать текст или файл" },
+        { status: 400 }
+      );
+    }
 
     if (!userText || userText.trim().length === 0) {
       return NextResponse.json(
@@ -60,6 +75,7 @@ export async function POST(
       );
     }
 
+    
     if (userText.trim().length < 1) {
       return NextResponse.json(
         { error: "Текст сообщения слишком короткий" },
@@ -80,18 +96,17 @@ export async function POST(
     const dbMessages = await messageService.getMessagesByChatId(chatId);
     const uiMessagesFromDb = dbMessages.map(dbMessageToUIMessage);
     // конвертируем UI сообщения в формат модели
-    const modelMessages = await convertToModelMessages(uiMessagesFromDb);
+    const modelMessages = await convertToModelMessages([...uiMessagesFromDb, message]);
 
-    const messagesWithFile = enrichMessagesWithFileContent(modelMessages);
     
     // делаем запрос к ИИ
     const result = streamText({
-      model: openrouter('qwen/qwen3.6-plus'),
-      messages: messagesWithFile,
+      model: openrouter('x-ai/grok-4.20-multi-agent'),
+      messages: modelMessages,
       abortSignal: req.signal,
       onError: (error) => {
-        return error.message;
-      }
+        console.error('[OpenRouter streamText error]', error);
+      },
     });
 
     // стрим ответа ИИ
@@ -109,7 +124,8 @@ export async function POST(
         }
       },
       onError: (error) => {
-        return `Ошибка при получении ответа от OpenRouter: ${(error?.message || 'Неизвестная ошибка')}`;
+        const message = error instanceof Error ? error.message : 'Неизвестная ошибка';
+        return `Ошибка при получении ответа от OpenRouter: ${message}`;
       }
     });
   }

@@ -22,17 +22,16 @@ export async function POST(req: NextRequest) {
       'image/jpeg',
       'image/webp',
       'text/plain',
-      'application/pdf',
     ];
 
     if (!allowedTypes.includes(file.type)) {
       return NextResponse.json({ error: 'Неподдерживаемый тип файла' }, { status: 400 });
     }
 
-    const messageFileData = await fileService.attachFileToMessage(messageId, file);
+    const uploaded = await fileService.uploadTempFileAndGetSignedUrl(file);
 
     return NextResponse.json(
-      { messageFileData },
+      { file: uploaded },
       { status: 200 }
     );
   } catch (e) {

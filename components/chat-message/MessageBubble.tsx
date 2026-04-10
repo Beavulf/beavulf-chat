@@ -20,7 +20,7 @@ export function MessageBubble(
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
-
+  
   return (
     <div
       data-testid={`message-${message.role}`}
@@ -29,7 +29,7 @@ export function MessageBubble(
       <div className={cn('flex flex-col gap-1 max-w-full', isUser && 'items-end')}>
 
         {/* индикатор подготовки сообщения ИИ — только для последнего */}
-        {!isUser && status === 'streaming' && isLast && !content && (
+        {!isUser && (status === 'streaming' || status === 'submitted') && isLast && !content && (
           <span className={cn(
             "flex items-center gap-2",
             "rounded-2xl px-4 py-3 text-sm leading-relaxed",

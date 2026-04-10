@@ -1,6 +1,6 @@
 'use client'
 
-import { createSignedUrl, uploadAttachment } from "@/fetchers/files-api";
+import { uploadAttachment } from "@/fetchers/files-api";
 import { cn } from "@/lib/utils";
 import { useMutation } from "@tanstack/react-query";
 import { Paperclip, Send, Square } from "lucide-react";
@@ -43,16 +43,20 @@ export function MessageInputArea(
     }
   });
 
-  const createSignedUrlMutation = useMutation({
-    mutationFn: createSignedUrl,
-    onError: (e) => {
-      toast.error(`Ошибка при получении приватной ссылки на файл: ${e.message}`)
-    }
-  });
-
   const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    console.log('cli');
     setFile(e.target.files?.[0] ?? null);
   };
+
+
+  function fileToDataUrl(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,22 +65,24 @@ export function MessageInputArea(
     let fileMeta: ChatPayload['message']['file'] | undefined;
 
     if (file) {
-      const messageFileData = await uploadFileMutation.mutateAsync({ file });
-      const signedUrl = await createSignedUrlMutation.mutateAsync({fileDataId: messageFileData.id})
+      const dataUrl = await fileToDataUrl(file);
       fileMeta = {
-        name: signedUrl.name,
-        url: signedUrl.url,      // подписанный URL
-        type: messageFileData.type,
+        name: file.name,
+        url: dataUrl,
+        type: file.type,
       };
     }
-
+    console.log(file);
+    
     handleSubmit({ input, file: fileMeta });
     setInput('');
     setFile(null);
   };
 
   useEffect(() => {
-    if (suggestionMsg) setInput(suggestionMsg);
+    if (!suggestionMsg) return;
+    const t = setTimeout(() => setInput(suggestionMsg), 0);
+    return () => clearTimeout(t);
   },[suggestionMsg]);
 
   // авторазмер поля ввода
@@ -90,9 +96,8 @@ export function MessageInputArea(
   // отправка по Enter
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSubmit({input, e});
-      setInput('');
+      // e.preventDefault();
+      onSubmit(e);
     }
   };
 
