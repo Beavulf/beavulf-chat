@@ -5,6 +5,8 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { signIn, signOut, signUp } from "@/fetchers/auth-api";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { ApiError } from "next/dist/server/api-utils";
+import { AppError } from "@/lib/errors";
 
 export function useAuth() {
   const queryClient = useQueryClient();
@@ -23,9 +25,6 @@ export function useAuth() {
       invalidateSession();
       router.push('/');
     },
-    onError: (e) => {
-      toast.error(e.message || 'Неверные данные для входа');
-    }
   });
 
   const signOutUser = useMutation({
@@ -36,9 +35,6 @@ export function useAuth() {
       router.push('/');
       router.refresh();
     },
-    onError: (e) => {
-      toast.error(e.message || 'Ошибка при выходе');
-    }
   });
 
   const signUpUser = useMutation({
@@ -48,9 +44,6 @@ export function useAuth() {
       invalidateSession();
       router.push('/');
     },
-    onError: (e) => {
-      toast.error(e.message || 'Ошибка при регистрации');
-    }
   })
 
   return { signInUser, signOutUser, signUpUser }

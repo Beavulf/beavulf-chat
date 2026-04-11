@@ -8,6 +8,14 @@ export const STALE_TIME = {
   SESSION: 5 * 60 * 1000
 }
 
+// допустимые типы файлов
+export const ALLOWED_FILE_TYPES = [
+  'image/png',
+  'image/jpeg',
+  'image/webp',
+  'text/plain',
+];
+
 export const ERRORS_CODES = {
   NOT_FOUND: 'NOT_FOUND',
   FORBIDDEN: 'FORBIDDEN',

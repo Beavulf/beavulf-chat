@@ -7,6 +7,7 @@ import { CustomToolTip } from "./CustomToolTip";
 import { toast } from "sonner";
 import Image from "next/image";
 import { useObjectUrl } from "@/hooks/use-object-url";
+import { ALLOWED_FILE_TYPES } from "@/constants/constants";
 
 const MAX_TEXTAREA_HEIGHT = 200
 
@@ -52,13 +53,25 @@ export function MessageInputArea(
   // выбор файла
   const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files && e.target.files.length > 0 ? e.target.files[0] : null;
-    // проверка размера файла (10 МБ)
-    if (selectedFile && selectedFile.size > 10 * 1024 * 1024) {
-      toast.error("Файл слишком большой (максимум 10 МБ)");
-      e.target.value = "";
-      setFile(null);
-      return;
+    
+    if (selectedFile) {
+      // проверка типа файла
+      if (!ALLOWED_FILE_TYPES.includes(selectedFile.type)) {
+        toast.error("Неподдерживаемый тип файла. Разрешены только изображения (PNG, JPEG, WebP) и текстовые файлы");
+        e.target.value = "";
+        setFile(null);
+        return;
+      }
+      
+      // проверка размера файла (10 МБ)
+      if (selectedFile.size > 10 * 1024 * 1024) {
+        toast.error("Файл слишком большой (максимум 10 МБ)");
+        e.target.value = "";
+        setFile(null);
+        return;
+      }
     }
+    
     setFile(selectedFile);
     e.target.value = "";
   };

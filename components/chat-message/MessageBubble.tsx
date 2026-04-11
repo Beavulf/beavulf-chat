@@ -6,8 +6,12 @@ import { Copy, CopyCheck, RefreshCw, ThumbsDown, ThumbsUp, RefreshCcw } from "lu
 import { CustomToolTip } from "../CustomToolTip"
 
 export function MessageBubble(
-  { message, status, isLast, regenerate }: 
-  { message: UIMessage, status: string, isLast?: boolean, regenerate: ()=>void }
+  { 
+    message, status, isLast, regenerate , fileName
+  }: 
+  { 
+    message: UIMessage, status: string, isLast?: boolean, regenerate: ()=>void, fileName?: string | null
+  }
 ) {
   const [copied, setCopied] = useState(false)
   const isUser = message.role === 'user'
@@ -50,6 +54,14 @@ export function MessageBubble(
           </span>
         )}
 
+        {/* {fileName && isUser && (
+          <div className="flex items-center gap-2 mt-1 text-xs text-[#b4b4b4]">
+            <span className="inline-block bg-[#232323] rounded px-2 py-1">
+              📎 Прикреплен файл: <span className="font-medium">{fileName}</span>
+            </span>
+          </div>
+        )} */}
+   
         <ChatMessageMarkdown text={content} isUser={isUser}/>
 
         {/* кнопки действия на сообщени ИИ */}

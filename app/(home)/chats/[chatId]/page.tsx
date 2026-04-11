@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useEffect, use } from 'react'
+import { useRef, useEffect, use, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import {
   Bot, CircleDashed 
@@ -29,6 +29,7 @@ export default function ChatPage(
   const initializedFirstMessage = useRef(false) 
   const firstMessage = searchParams.get('firstMessage')
   const router = useRouter();
+  // const [fileName, setFileName] = useState<string | null>(null)
   
   // useChat с нашим роутом и отправкой одного сообщения в запросе
   const {status, sendMessage, messages, setMessages, regenerate, error, stop } = useChat({
@@ -102,6 +103,7 @@ export default function ChatPage(
     }
 
     if (file) {
+      // setFileName(file.name)
       parts.push({
         type: 'file',
         url: file.url,

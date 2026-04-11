@@ -2,6 +2,8 @@
 
 Клон интерфейса чат-бота в стиле ChatGPT. Интеграция с LLM через OpenRouter, аутентификация через Supabase, чаты сохраняются в базе данных.
 
+Доступ по ссылке: [https://beavulf-chat.vercel.app/](https://beavulf-chat.vercel.app/)
+
 ## Что умеет
 
 - Чат с ИИ (Grok через OpenRouter), ответы стримятся в реальном времени
