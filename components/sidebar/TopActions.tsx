@@ -1,13 +1,25 @@
-import { SquarePen } from "lucide-react";
+import { LoaderCircle, SquarePen } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useTransition } from "react";
 
 export default function TopActions(
   { collapsed }: 
   { collapsed: boolean }
 ) {
   const router = useRouter();
+  const pathname = usePathname();
+  const [isPending, startTransition] = useTransition();
+  
+  const handleNewChat = () => {
+    if (pathname === '/') return;
+
+    startTransition(() => {
+      router.push('/');
+    });
+  };
+
   return (
     <div className={cn('flex items-center gap-1 p-3 pt-4', collapsed ? 'justify-center' : 'justify-between')}>
       {!collapsed && (
@@ -42,15 +54,22 @@ export default function TopActions(
       )}
 
       <button
-        data-testid="button-new-chat"
-        onClick={()=>router.push('/')}
+        type="button"
+        onClick={handleNewChat}
+        disabled={isPending || pathname === '/'}
+        style={collapsed ? { display: 'none' } : undefined}
         className={cn(
-          'flex items-center justify-center rounded-lg text-[#8e8ea0] hover:text-white hover:bg-[#2f2f2f] transition-colors cursor-pointer',
-          collapsed ? 'w-9 h-9' : 'w-9 h-9'
+          'flex items-center justify-center rounded-lg text-[#8e8ea0] ',
+          'hover:text-white hover:bg-[#2f2f2f] transition-colors cursor-pointer w-9 h-9',
+          (isPending || pathname === '/') && 'opacity-50 cursor-not-allowed'
         )}
         title="Новый чат"
       >
-        <SquarePen size={18} />
+        {isPending ? (
+          <LoaderCircle size={18} className="animate-spin" />
+        ) : (
+          <SquarePen size={18} />
+        )}
       </button>
     </div>
   )

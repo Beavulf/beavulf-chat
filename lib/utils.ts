@@ -6,6 +6,7 @@ import { validate, version } from "uuid";
 import { ERRORS_CODES } from "@/constants/constants";
 import type { UIMessage } from "ai";
 import type { TMessage } from "@/types/db-types";
+import { toast } from "sonner";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -32,6 +33,7 @@ export function handleError(error: unknown): NextResponse {
 export async function isResOk(res: Response): Promise<void> {
   if (!res.ok) {
     const body = await res.json()
+    toast.error(`${body.error}`);
     throw Object.assign(new Error(body.error), { code: body.code })
   } 
 }

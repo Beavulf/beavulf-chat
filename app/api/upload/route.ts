@@ -1,3 +1,5 @@
+// для масштабирования
+
 import { NextRequest, NextResponse } from 'next/server';
 import { handleError } from '@/lib/utils';
 import { fileService } from '@/service/file-service';

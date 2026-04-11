@@ -18,10 +18,14 @@ export function useRealtimeChats() {
 
     const onChange = (payload: RealtimePostgresChangesPayload<TChat>) => {
       if (payload.eventType === "INSERT" && payload.new) {
-        queryClient.setQueryData<TChat[]>([QUERY_KEYS.CHATS, userId], (old) => [
-          payload.new!,
-          ...(old ?? []),
-        ]);
+        queryClient.setQueryData<TChat[]>([QUERY_KEYS.CHATS, userId], (old) => {
+          // Проверяем, нет ли уже чата с таким id
+          if (old?.some(chat => chat.id === payload.new!.id)) {
+            return old;
+          }
+          return [payload.new!, ...(old ?? [])];
+        });
+
         return;
       }
       if (payload.eventType === "DELETE" && payload.old) {
@@ -51,7 +55,11 @@ export function useRealtimeChats() {
         },
         onChange
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === "CHANNEL_ERROR") {
+          console.error("Ошибка при подписке на канал чата")
+        }
+      });
 
     return () => {
       void supabase.removeChannel(channel);

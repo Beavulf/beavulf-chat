@@ -14,7 +14,7 @@ export const fileRepository = {
       .exists(path);
 
     if (error) {
-      throw new DatabaseError(`Ошибка при поулчении файла из хранилища: ${error.message}`);
+      throw new DatabaseError(`Ошибка при получении файла из хранилища: ${error.message}`);
     }
     
     return data

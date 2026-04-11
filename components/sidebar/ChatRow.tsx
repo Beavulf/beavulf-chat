@@ -1,16 +1,16 @@
 import { useState, useRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
-import { MessageSquare, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { MessageSquare, MoreHorizontal, Pencil } from "lucide-react";
 import { 
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent,
   DropdownMenuItem, DropdownMenuSeparator 
 } from "../ui/dropdown-menu";
 import Link from 'next/link';
 import { Input } from "../ui/input";
-import { AlertDialogDestructive } from "../AlertDialogDestructive";
 import { ROUTE_CONFIG } from "@/config/route-config";
 import { useChatActions } from "@/hooks/use-chat-actions";
 import type { TChat } from "@/types/db-types";
+import { ChatDialogAlert } from "./ChatDialogAlert";
 
 const TITLE_STR = "Новый чат";
 
@@ -32,13 +32,13 @@ export default function ChatRow(
   const finalTitle = chat.title || TITLE_STR;
 
   const submitRename = () => {
-    if (!title.trim() || renameMutation.isPending) {
-      setTitle(finalTitle)
-      setIsRename(false);
+    const trimmed = title.trim();
+    if (!trimmed || renameMutation.isPending) {
+      cancelRename();
       return;
     }
     
-    renameMutation.mutate(title);
+    renameMutation.mutate(trimmed);
     setIsRename(false);
   };
 
@@ -70,7 +70,7 @@ export default function ChatRow(
         {isRename ? 
           <Input 
             value={title}
-            onChange={(e)=>setTitle(e?.target?.value)}
+            onChange={(e)=>setTitle(e.target.value)}
             ref={inputRef}
             className="border-0 m-0" 
             onFocus={(e)=>e.target.select()}
@@ -85,13 +85,12 @@ export default function ChatRow(
           /> : 
           <Link
             href={ROUTE_CONFIG.CHAT_BY_ID.replace(':id', chat.id)}
-            data-testid={`link-chat-${chat.id}`}
             title={finalTitle}
             className={cn(
               'flex flex-1 gap-2.5 items-center max-w-50', collapsed && 'justify-center px-0'
             )}
           >
-            <MessageSquare size={16} className="shrink-0" />
+            {collapsed && <MessageSquare size={16} className="shrink-0" />}
             {!collapsed && (<span className="truncate text-[13.5px]">{chat.title}</span>)}
           </Link>
         }
@@ -110,21 +109,7 @@ export default function ChatRow(
                 Переименовать
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <AlertDialogDestructive 
-                dialogTitle="Удаление чата" 
-                dialogDescription={<span>Вы действительно хотите удалить данный чат ?</span>}
-                onDelete={deleteMutation.mutate}
-                trigger={
-                  <DropdownMenuItem 
-                    disabled={deleteMutation.isPending}
-                    variant="destructive" 
-                    className='cursor-pointer' 
-                  >
-                    <Trash2/>
-                    Удалить
-                  </DropdownMenuItem>
-                }
-              />
+              <ChatDialogAlert deleteMutation={deleteMutation}/>
             </DropdownMenuContent>
           </DropdownMenu>
         }

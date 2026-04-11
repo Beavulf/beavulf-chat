@@ -1,19 +1,49 @@
 'use client'
 
-import { LogIn, LogOut, User } from "lucide-react";
+import { AlertCircle, LogIn, LogOut, User } from "lucide-react";
 import { AuthDialog } from "../auth/AuthDialog";
 import { useSession } from "@/hooks/use-session";
 import { useAuth } from "@/hooks/use-auth";
+import { CustomToolTip } from "../CustomToolTip";
+
 export default function UserCard(
     { collapsed }:
     { collapsed: boolean }
 ) {
-  const { user } = useSession();
+  const { user, isLoading, error } = useSession();
   const { signOutUser } = useAuth();
   const isAuthenticated = !!user && !user.is_anonymous;
 
   const handleSignOut = async () => {
-    await signOutUser.mutate();
+    if (!signOutUser.isPending){
+      await signOutUser.mutate();
+    }
+  }
+
+  if (error) {
+    return (
+      <div className="flex w-full items-center gap-3 px-2.5 py-2.5 text-red-400">
+        <div className="h-8 w-8 rounded-full bg-red-900/20 shrink-0 flex items-center justify-center">
+          <AlertCircle size={15} />
+        </div>
+        {!collapsed && <span className="text-xs">Ошибка загрузки</span>}
+      </div>
+    );
+  }
+
+  // заглушка пока пользователь грузится
+  if (isLoading) {
+    return (
+      <div className="flex w-full items-center gap-3 px-2.5 py-2.5 animate-pulse">
+        <div className="h-8 w-8 rounded-full bg-[#2f2f2f] shrink-0" />
+        {!collapsed && (
+          <div className="flex flex-col gap-1 min-w-0">
+            <div className="h-3 w-24 bg-[#2f2f2f] rounded" />
+            <div className="h-2 w-16 bg-[#2f2f2f] rounded" />
+          </div>
+        )}
+      </div>
+    );
   }
 
   // если свернут
@@ -54,11 +84,19 @@ export default function UserCard(
             </span>
             <span className="text-[11px] text-[#5a8a4a] truncate">Профиль</span>
         </div>
-        <LogOut 
-          onClick={handleSignOut} 
-          size={14} 
-          className="ml-auto shrink-0 text-[#5a5a5a] cursor-pointer hover:text-white" 
-        />
+        <CustomToolTip content="Выйти из аккаунта">
+          <LogOut 
+            aria-label="Выйти из аккаунта"
+            onClick={handleSignOut} 
+            size={14} 
+            className={`ml-auto shrink-0 cursor-pointer transition-colors
+              ${signOutUser.isPending 
+                ? 'text-[#5a5a5a] cursor-not-allowed' 
+                : 'text-[#5a5a5a] hover:text-white'
+              }`
+            } 
+          />
+        </CustomToolTip>
       </div>
     );
   }

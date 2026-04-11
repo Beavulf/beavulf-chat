@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 
 
-export function validEmailPass(email: string, password: string) {
+export function validateEmailPass(email: string, password: string): NextResponse | null {
   if (!email || !password) {
     return NextResponse.json(
-      { error: "Email и пароль обязательны" }, 
+      { error: "Email и пароль обязательны" },
       { status: 400 }
     )
   }
@@ -23,11 +23,12 @@ export function validEmailPass(email: string, password: string) {
     );
   }
 
-  // Простейшая проверка email на валидность
   if (!email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
     return NextResponse.json(
       { error: "Некорректный email" },
       { status: 400 }
     );
   }
+
+  return null;
 }

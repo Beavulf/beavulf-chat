@@ -3,7 +3,7 @@
 import { useRef, useEffect, use } from 'react'
 import { useSearchParams } from 'next/navigation'
 import {
-  Bot
+  Bot, CircleDashed 
 } from 'lucide-react'
 import { dbMessageToUIMessage } from '@/lib/utils'
 import { useRealtimeMessages } from '@/hooks/realtime-messages'
@@ -16,7 +16,7 @@ import { API_CONFIG } from '@/config/api-config'
 import { MessageBubble } from '@/components/chat-message/MessageBubble'
 import { toast } from 'sonner'
 import { MessageInputArea } from '@/components/MessageInputArea'
-
+import { useRouter } from 'next/navigation'
 
 export default function ChatPage(
   { params }:
@@ -26,8 +26,9 @@ export default function ChatPage(
   const searchParams = useSearchParams()
   const initialMessagesLoaded = useRef(false)
   const bottomRef = useRef<HTMLDivElement>(null)
-  const initialized = useRef(false) 
+  const initializedFirstMessage = useRef(false) 
   const firstMessage = searchParams.get('firstMessage')
+  const router = useRouter();
   
   // useChat с нашим роутом и отправкой одного сообщения в запросе
   const {status, sendMessage, messages, setMessages, regenerate, error, stop } = useChat({
@@ -44,29 +45,35 @@ export default function ChatPage(
     }),
   })
   const isStreaming = status === 'submitted' || status === 'streaming';
-  const showAssistantPlaceholder =
-    isStreaming && messages.length > 0 && messages[messages.length - 1]?.role === 'user';
-  
-  // Если переход с главной и первым сообщением
-  useEffect(() => {
-    if (firstMessage && !initialized.current && !initialMessagesLoaded.current) {
-      initialized.current = true
-      sendMessage({ text: firstMessage }) 
-    }
-  }, [firstMessage, sendMessage, initialMessagesLoaded]);
-
-  useRealtimeMessages(chatId, setMessages);
-
+  const showAssistantPlaceholder = isStreaming && messages.length > 0 && messages[messages.length - 1]?.role === 'user';
+   
   // Получение истории сообщений из БД
-  const { data: historyMessages = [], isLoading } = useQuery({
+   const { data: historyMessages = [], isLoading, isPending } = useQuery({
     queryKey: [QUERY_KEYS.MESSAGES, chatId],
     queryFn: () => getMessages(chatId),
     enabled: !!chatId
   })
 
+  // Если переход с главной и первым сообщением
+  useEffect(() => {
+    if (firstMessage && !initializedFirstMessage.current && !initialMessagesLoaded.current) {
+      initializedFirstMessage.current = true
+      // Проверяем, есть ли уже сообщения в БД — если да, НЕ отправляем повторно
+      if (historyMessages.length > 0) {
+        initialMessagesLoaded.current = true;
+        router.replace(window.location.pathname, { scroll: false });
+        return;
+      }
+      sendMessage({ text: firstMessage })
+      router.replace(window.location.pathname, { scroll: false });
+    }
+  }, [firstMessage, sendMessage, initialMessagesLoaded, historyMessages, router]);
+
+  useRealtimeMessages({chatId, setChatMessages: setMessages});
+
   // инициализируем истории из БД в хук useChat
   useEffect(() => {   
-    if (historyMessages.length > 0 && !initialMessagesLoaded.current && !initialized.current) {
+    if (historyMessages.length > 0 && !initialMessagesLoaded.current && !initializedFirstMessage.current) {
       setMessages(historyMessages
         .slice()
         .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
@@ -82,8 +89,7 @@ export default function ChatPage(
   },[error]);
 
   // отправка сообщения
-  const handleSubmit = async ({input, e, file}:{input: string, e?: React.FormEvent, file? :{name: string; url: string; type: string}}) => {
-    e?.preventDefault();
+  const handleSubmit = async ({input, file}:{input: string, file? :{name: string; url: string; type: string}}) => {
     if (isStreaming) await stop();
 
     const trimmed = input.trim();
@@ -101,19 +107,18 @@ export default function ChatPage(
         url: file.url,
         mediaType: file.type,
         filename: file.name,
-      } as any);
+      });
     }
-
-    // отправляем полноценное UI‑сообщение (useChat сам добавит id/role)
-    console.log(parts);
     
     await sendMessage({ parts });
+    router.replace(window.location.pathname, { scroll: false })
   }
 
   // прокрутить в конец при открытии страницы
+  const lastMessageId = messages[messages.length - 1]?.id;
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
+  }, [messages, lastMessageId])
 
   return (
     <div className="relative flex flex-col h-full w-full">
@@ -129,7 +134,13 @@ export default function ChatPage(
               <p className="text-sm text-[#5a5a5a]">Начните разговор</p>
             </div>
           )}
-
+          {isPending && messages.length === 0 && (
+            <div className="flex flex-col items-center justify-center h-48 text-center">
+              <CircleDashed className='animate-spin text-[#8e8ea0]'/>
+              <p className="text-sm text-[#5a5a5a]">Загрузка сообщений...</p>
+            </div>
+          )}
+     
           {messages.map((msg, index) => {
             const isLastMessage = index === messages.length - 1
             return (
@@ -156,9 +167,9 @@ export default function ChatPage(
               regenerate={regenerate}
             />
           )}
-
           <div ref={bottomRef} />
         </div>
+
       </div>
 
       <div className="shrink-0 px-4 pb-5 pt-2">

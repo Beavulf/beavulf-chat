@@ -5,70 +5,70 @@ import type { TUserLimit, TUserLimitUpdate } from "@/types/db-types";
 
 export const userLimitRepository = {
 
-    async getLimitByUserId(userId: string): Promise<TUserLimit | null> {
-        const { data, error } = await supabaseServer
-            .from("user_limits")
-            .select("*")
-            .eq("user_id", userId)
-            .single();
-            
-        if (error?.code === "PGRST116") return null;
-        if (error) { 
-            throw new DatabaseError(`Ошибка при получении лимита пользователя: ${error.message}`);
-        }
-
-        return data;
-    },
-
-    // создание лимита для полльзователя
-    async createUserLimit(userId: string): Promise<TUserLimit> {
-        const { data, error } = await supabaseServer
-            .from("user_limits")
-            .insert({ 
-                user_id: userId,
-                reset_at: new Date(Date.now() + ANON_SESSION.RESET_AT).toISOString(),
-            })
-            .select()
-            .single();
-
-        if (error) {
-            throw new DatabaseError(`Ошибка при создании лимита для пользователя: ${error.message}`);
-        }
+  async getLimitByUserId(userId: string): Promise<TUserLimit | null> {
+    const { data, error } = await supabaseServer
+      .from("user_limits")
+      .select("*")
+      .eq("user_id", userId)
+      .single();
         
-        return data;
-    },
+    if (error?.code === "PGRST116") return null;
+    if (error) { 
+      throw new DatabaseError(`Ошибка при получении лимита пользователя: ${error.message}`);
+    }
 
-    // обновление лимита
-    async resetLimitIfExpired(userId: string): Promise<TUserLimitUpdate> {
-        const now = new Date();
+    return data;
+  },
 
-        const { data, error } = await supabaseServer
-            .from("user_limits")
-            .update({
-                free_q_u: 0,
-                reset_at: new Date(now.getTime() + ANON_SESSION.RESET_AT).toISOString()
-             })
-            .eq("user_id", userId)
-            .select()
-            .single();
+  // создание лимита для полльзователя
+  async createUserLimit(userId: string): Promise<TUserLimit> {
+    const { data, error } = await supabaseServer
+      .from("user_limits")
+      .insert({ 
+        user_id: userId,
+        reset_at: new Date(Date.now() + ANON_SESSION.RESET_AT).toISOString(),
+      })
+      .select()
+      .single();
 
-        if (error) {
-            throw new DatabaseError(`Ошибка при обновлении лимита пользователя: ${error.message}`);
-        }
-        
-        return data;
-    },
+    if (error) {
+      throw new DatabaseError(`Ошибка при создании лимита для пользователя: ${error.message}`);
+    }
+    
+    return data;
+  },
 
-    // увеличение счетчика бесплатных вопросов
-    async incrementQuestions(userId: string):Promise<void> {
-        const { error } = await supabaseServer.rpc('increment_user_questions', {
-          p_user_id: userId,
-        });
+  // обновление лимита
+  async resetLimitIfExpired(userId: string): Promise<TUserLimitUpdate> {
+    const now = new Date();
 
-        if (error) {
-            throw new DatabaseError(`Ошибка при увеличении счетчика бесплатных вопросов: ${error.message}`);
-        }
+    const { data, error } = await supabaseServer
+      .from("user_limits")
+      .update({
+        free_q_u: 0,
+        reset_at: new Date(now.getTime() + ANON_SESSION.RESET_AT).toISOString()
+      })
+      .eq("user_id", userId)
+      .select()
+      .single();
 
-        return;
-    },
+    if (error) {
+      throw new DatabaseError(`Ошибка при обновлении лимита пользователя: ${error.message}`);
+    }
+    
+    return data;
+  },
+
+  // увеличение счетчика бесплатных вопросов
+  async incrementQuestions(userId: string):Promise<void> {
+    const { error } = await supabaseServer.rpc('increment_user_questions', {
+      p_user_id: userId,
+    });
+
+    if (error) {
+      throw new DatabaseError(`Ошибка при увеличении счетчика бесплатных вопросов: ${error.message}`);
+    }
+
+    return;
+  },
 }

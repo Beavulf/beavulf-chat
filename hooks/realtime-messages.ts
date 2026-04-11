@@ -4,16 +4,23 @@ import { useQueryClient } from "@tanstack/react-query";
 import type { RealtimePostgresChangesPayload } from "@supabase/supabase-js";
 import type { UIMessage } from "@ai-sdk/react";
 import { QUERY_KEYS } from "@/constants/constants";
-import { dbMessageToUIMessage } from "@/lib/utils";
+import { dbMessageToUIMessage, extractTextFromMessage } from "@/lib/utils";
 import type { TMessage } from "@/types/db-types";
+import { toast } from "sonner";
 
 type SetMessages = (
   messages: UIMessage[] | ((prev: UIMessage[]) => UIMessage[])
 ) => void;
 
 export function useRealtimeMessages(
-  chatId: string,
-  setChatMessages?: SetMessages,
+  {
+    chatId,
+    setChatMessages,
+  }:
+  {
+    chatId: string,
+    setChatMessages: SetMessages,
+  }
 ) {
   const queryClient = useQueryClient();
   const supabase = useMemo(() => createClient(), []);
@@ -22,56 +29,62 @@ export function useRealtimeMessages(
     if (!chatId) return;
 
     const onChange = (payload: RealtimePostgresChangesPayload<TMessage>) => {
-      if (payload.eventType === "INSERT" && payload.new) {
-        queryClient.setQueryData<TMessage[]>(
-          [QUERY_KEYS.MESSAGES, chatId],
-          (old) => {
-            // Проверка на дубликаты по id
-            if (old?.some((msg) => msg.id === payload.new!.id)) {
-              return old;
+      try{
+        if (payload.eventType === "INSERT" && payload.new) {
+          queryClient.setQueryData<TMessage[]>(
+            [QUERY_KEYS.MESSAGES, chatId],
+            (old) => {
+              // Проверка на дубликаты по id
+              if (old?.some((msg) => msg.id === payload.new!.id)) {
+                return old;
+              }
+              return [payload.new!, ...(old ?? [])];
             }
-            return [payload.new!, ...(old ?? [])];
-          }
-        );
+          );
 
-        // Синхронизируем useChat стейт
+          // Синхронизируем useChat стейт
           setChatMessages?.((prev) => {
             const newMsg = dbMessageToUIMessage(payload.new!);
             if (prev.some((m) => m.id === newMsg.id)) return prev;
             // Проверка: текст нового сообщения не совпадает с текстом последнего старого
             const lastMsg = prev[prev.length - 1];
             if (lastMsg && lastMsg.parts && newMsg.parts) {
-              const lastText = lastMsg.parts.map(p => p.type === 'text' ? p.text : '').join('');
-              const newText = newMsg.parts.map(p => p.type === 'text' ? p.text : '').join('');
+              const lastText = extractTextFromMessage(lastMsg);
+              const newText = extractTextFromMessage(newMsg);
               if (lastText === newText) return prev;
             }
             return [...prev, newMsg];
           });
-  
-        return;
-      }
+    
+          return;
+        }
 
-      if (payload.eventType === "UPDATE" && payload.new) {
-        queryClient.setQueryData<TMessage[]>(
-          [QUERY_KEYS.MESSAGES, chatId],
-          (old) => (old ?? []).map((c) => c.id === payload.new!.id ? payload.new! : c)
-        );
-        setChatMessages?.((prev) =>
-          prev.map((m) =>
-            m.id === payload.new!.id ? dbMessageToUIMessage(payload.new!) : m
-          )
-        );
-        return;
-      }
+        if (payload.eventType === "UPDATE" && payload.new) {
+          queryClient.setQueryData<TMessage[]>(
+            [QUERY_KEYS.MESSAGES, chatId],
+            (old) => (old ?? []).map((c) => c.id === payload.new!.id ? payload.new! : c)
+          );
+          setChatMessages?.((prev) =>
+            prev.map((m) =>
+              m.id === payload.new!.id ? dbMessageToUIMessage(payload.new!) : m
+            )
+          );
+          return;
+        }
 
-      if (payload.eventType === "DELETE" && payload.old) {
-        queryClient.setQueryData<TMessage[]>(
-          [QUERY_KEYS.MESSAGES, chatId],
-          (old) => (old ?? []).filter((c) => c.id !== payload.old!.id)
-        );
-        setChatMessages?.((prev) =>
-          prev.filter((m) => m.id !== payload.old!.id)
-        );
+        if (payload.eventType === "DELETE" && payload.old) {
+          queryClient.setQueryData<TMessage[]>(
+            [QUERY_KEYS.MESSAGES, chatId],
+            (old) => (old ?? []).filter((c) => c.id !== payload.old!.id)
+          );
+          setChatMessages?.((prev) =>
+            prev.filter((m) => m.id !== payload.old!.id)
+          );
+        }
+      }
+      catch(e) {
+        console.error('Realtime handler error:', e);
+        toast.error('Ошибка обновления сообщений');
       }
     };
 
@@ -84,11 +97,21 @@ export function useRealtimeMessages(
         filter: `chat_id=eq.${chatId}`,
       }, onChange)
       .subscribe((status)=>{
-        if (status === "CHANNEL_ERROR") {
-          console.error("Ошибка при подписке на канал")
+        switch (status) {
+          case 'SUBSCRIBED':
+            console.log('Realtime subscription active');
+            break;
+          case 'CHANNEL_ERROR':
+            toast.error('Ошибка подключения к чату. Переподключение...');
+            break;
+          case 'TIMED_OUT':
+            toast.warning('Превышено время ожидания. Повторная попытка...');
+            break;
+          case 'CLOSED':
+            break;
         }
       });
 
     return () => { void supabase.removeChannel(channel); };
-  }, [chatId, queryClient, supabase, setChatMessages]);
+  }, [chatId, queryClient, supabase, setChatMessages,]);
 }

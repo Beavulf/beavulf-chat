@@ -10,6 +10,7 @@ import { ROUTE_CONFIG } from '@/config/route-config'
 import { MessageInputArea } from '@/components/MessageInputArea'
 import { useState } from 'react'
 import { cn } from '@/lib/utils'
+import { toast } from 'sonner'
 
 const SUGGESTIONS = [
   {
@@ -54,6 +55,9 @@ export default function ChatsPage() {
           )}`,
         )
       }
+    },
+    onError: (e) => {
+      toast.error(e.message || 'Не удалось создать чат');
     },
   })
 

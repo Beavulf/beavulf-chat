@@ -1,3 +1,5 @@
+// для масштабирования
+
 import { handleError } from '@/lib/utils';
 import { fileService } from '@/service/file-service';
 import { NextRequest, NextResponse } from 'next/server';
@@ -28,7 +30,7 @@ export async function GET(
     );
   }
   catch (e) {
-    handleError(e);
+    return handleError(e);
   }
 }
 
@@ -54,6 +56,6 @@ export async function DELETE(
     );
   }
   catch(e) {
-    handleError(e);
+    return handleError(e);
   }
 }

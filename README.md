@@ -1,36 +1,73 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Beavulf Chat
 
-## Getting Started
+Клон интерфейса чат-бота в стиле ChatGPT. Интеграция с LLM через OpenRouter, аутентификация через Supabase, чаты сохраняются в базе данных.
 
-First, run the development server:
+## Что умеет
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+- Чат с ИИ (Grok через OpenRouter), ответы стримятся в реальном времени
+- Список чатов в боковой панели, создание, переименование, удаление
+- Аутентификация: регистрация, вход, выход
+- Анонимный доступ с лимитом до 3 вопросов
+- Прикрепление файлов к сообщениям (изображения, текст)
+
+## Требования
+
+- Node.js 20+
+- npm (или любой другой пакетный менеджер)
+
+## Запуск
+
+1. Клон репозитория и зайти в папку проекта:
+
+```
+git clone <repo-url>
+cd beavulf-chat
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+1. Установить зависимости:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```
+npm install
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. Создать файл `.env.local` в корне проекта и заполнить переменные:
 
-## Learn More
+```
+NEXT_PUBLIC_SUPABASE_URL=<твой URL Supabase проекта>
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=<твой publishable key>
+SUPABASE_SERVICE_ROLE_KEY=<твой service role key>
+OPENROUTER_API_KEY=<твой API ключ OpenRouter>
+```
 
-To learn more about Next.js, take a look at the following resources:
+Ключи берутся из панели Supabase и OpenRouter. Без них проект не запустится.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. Запустить дев-сервер:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```
+npm run dev
+```
 
-## Deploy on Vercel
+Открыть [http://localhost:3000](http://localhost:3000) в браузере.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Сборка для продакшена
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+npm run build
+npm run start
+```
+
+## Скрипты
+
+
+| Команда             | Что делает                         |
+| ------------------- | ---------------------------------- |
+| `npm run dev`       | Дев-сервер с горячей перезагрузкой |
+| `npm run build`     | Продакшен-сборка                   |
+| `npm run start`     | Запуск продакшен-сервера           |
+| `npm run lint`      | Линтинг                            |
+| `npm run gen:types` | Генерация TS-типов из Supabase     |
+
+
+## Стек
+
+Next.js 16, React 19, TypeScript, Tailwind CSS 4, ShadcnUI, TanStack Query, Supabase, Vercel AI SDK, OpenRouter

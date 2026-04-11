@@ -1,3 +1,5 @@
+// для масштабирования 
+
 import { fileRepository } from "@/repositories/file-repository"
 import type { TMessageFile, TMessageFileInsert } from "@/types/db-types";
 import { authService } from "./auth-service";

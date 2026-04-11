@@ -18,35 +18,38 @@ export function useAuth() {
   
   const signInUser = useMutation({
     mutationFn: signIn,
+    retry: false,
     onSuccess: () => {
       invalidateSession();
       router.push('/');
     },
-    onError: () => {
-      toast.error('Неверные данные для входа');
+    onError: (e) => {
+      toast.error(e.message || 'Неверные данные для входа');
     }
   });
 
   const signOutUser = useMutation({
     mutationFn: signOut,
+    retry: false,
     onSuccess: () => {
       queryClient.clear();
-      router.push('/')
+      router.push('/');
       router.refresh();
     },
-    onError: () => {
-      toast.error('Ошибка при выходе');
+    onError: (e) => {
+      toast.error(e.message || 'Ошибка при выходе');
     }
   });
 
   const signUpUser = useMutation({
     mutationFn: signUp,
+    retry: false,
     onSuccess: () => {
       invalidateSession();
       router.push('/');
     },
-    onError: () => {
-      toast.error('Ошибка при регистрации');
+    onError: (e) => {
+      toast.error(e.message || 'Ошибка при регистрации');
     }
   })
 

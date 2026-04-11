@@ -28,7 +28,7 @@ export function MessageBubble(
     >
       <div className={cn('flex flex-col gap-1 max-w-full', isUser && 'items-end')}>
 
-        {/* индикатор подготовки сообщения ИИ — только для последнего */}
+        {/* индикатор подготовки сообщения ИИ, только для последнего */}
         {!isUser && (status === 'streaming' || status === 'submitted') && isLast && !content && (
           <span className={cn(
             "flex items-center gap-2",

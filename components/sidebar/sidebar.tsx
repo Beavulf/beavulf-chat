@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -8,7 +8,7 @@ import { useRealtimeChats } from '@/hooks/realtime-chats';
 import ChatList from './ChatList';
 import TopActions from './TopActions';
 import BottomActions from './BottomActions';
-import { QUERY_KEYS } from '@/constants/constants';
+import { QUERY_KEYS, STALE_TIME } from '@/constants/constants';
 import { getChats } from '@/fetchers/chats-api';
 import { useSession } from '@/hooks/use-session';
 
@@ -20,11 +20,12 @@ export function Sidebar() {
   useRealtimeChats();
 
   // получаем чаты пользователя
-  const { data: chats=[], isLoading } = useQuery({
+  const { data: chats=[], isPending, isError, isFetching } = useQuery({
     queryKey: [QUERY_KEYS.CHATS, user?.id],
     queryFn: getChats,
-    staleTime: 300*60*1000,
+    staleTime: STALE_TIME.CHATS,
     enabled: !!user?.id,
+    refetchOnWindowFocus: false
   })
 
   return (
@@ -37,7 +38,6 @@ export function Sidebar() {
     >
       {/* Кнопка сворачивания бокового меню */}
       <button
-        data-testid="sidebar-toggle"
         onClick={() => setCollapsed(!collapsed)}
         className="absolute -right-3 top-5 z-10 flex h-6 w-6 items-center justify-center rounded-full bg-[#2f2f2f] border border-[#3f3f3f] text-[#8e8ea0] hover:text-white hover:bg-[#3f3f3f] transition-colors"
         aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
@@ -51,8 +51,10 @@ export function Sidebar() {
       {/* Chat list */}
       <ChatList
         chats={chats}
-        isLoading={isLoading}
+        isPending={isPending}
         collapsed={collapsed}
+        isError={isError}
+        isFetching={isFetching}
       />
 
       {/* Bottom actions */}

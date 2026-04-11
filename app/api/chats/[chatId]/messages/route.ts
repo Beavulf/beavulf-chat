@@ -4,7 +4,6 @@ import { dbMessageToUIMessage, extractTextFromMessage, handleError, isUuidV4 } f
 import { streamText, convertToModelMessages } from "ai";
 import type { UIMessage } from "ai";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
-import { enrichMessagesWithFileContent } from "./[messageId]/_helper";
 
 const openrouter = createOpenAICompatible({
   name: 'openrouter',
@@ -58,9 +57,6 @@ export async function POST(
       );
     }  
     
-    // извлекаем текст из последнего сообщения пользователя
-    const userText = extractTextFromMessage(message);
-    
     if (!hasUsableParts(message)) {
       return NextResponse.json(
         { error: "Сообщение должно содержать текст или файл" },
@@ -68,17 +64,11 @@ export async function POST(
       );
     }
 
+    const userText = extractTextFromMessage(message);
+
     if (!userText || userText.trim().length === 0) {
       return NextResponse.json(
         { error: "Текст сообщения не может быть пустым" },
-        { status: 400 }
-      );
-    }
-
-    
-    if (userText.trim().length < 1) {
-      return NextResponse.json(
-        { error: "Текст сообщения слишком короткий" },
         { status: 400 }
       );
     }
@@ -96,12 +86,12 @@ export async function POST(
     const dbMessages = await messageService.getMessagesByChatId(chatId);
     const uiMessagesFromDb = dbMessages.map(dbMessageToUIMessage);
     // конвертируем UI сообщения в формат модели
-    const modelMessages = await convertToModelMessages([...uiMessagesFromDb, message]);
-
+    const uiMessagesWithoutLast = uiMessagesFromDb.slice(0, -1);
+    const modelMessages = await convertToModelMessages([...uiMessagesWithoutLast, message]);
     
     // делаем запрос к ИИ
     const result = streamText({
-      model: openrouter('x-ai/grok-4.20-multi-agent'),
+      model: openrouter('x-ai/grok-4.20'),
       messages: modelMessages,
       abortSignal: req.signal,
       onError: (error) => {

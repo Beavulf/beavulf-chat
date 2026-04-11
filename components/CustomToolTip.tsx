@@ -5,12 +5,12 @@ import {
 } from "@/components/ui/tooltip"
 
 export function CustomToolTip(
-  {children, content}: 
+  {children, content}:
   {children: React.ReactNode, content: React.ReactNode}
 ) {
   return (
     <Tooltip>
-      <TooltipTrigger>
+      <TooltipTrigger asChild>
         {children}
       </TooltipTrigger>
       <TooltipContent>
