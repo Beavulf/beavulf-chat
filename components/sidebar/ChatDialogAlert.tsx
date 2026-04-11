@@ -5,7 +5,7 @@ import type { UseMutationResult } from "@tanstack/react-query";
 
 export function ChatDialogAlert(
   {deleteMutation}:
-  {deleteMutation: ()=> UseMutationResult<void, Error, void, unknown>}
+  {deleteMutation: UseMutationResult<void, Error, void, unknown>}
 ) {
   return (
     <AlertDialogDestructive 

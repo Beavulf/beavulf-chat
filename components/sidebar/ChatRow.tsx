@@ -18,10 +18,12 @@ export default function ChatRow(
   {
     chat,
     collapsed,
+    onNavigate,
   }:
   {
     chat: TChat;
     collapsed: boolean;
+    onNavigate?: () => void;
   }
 ) {
   const [isRename, setIsRename] = useState<boolean>(false);
@@ -86,6 +88,7 @@ export default function ChatRow(
           <Link
             href={ROUTE_CONFIG.CHAT_BY_ID.replace(':id', chat.id)}
             title={finalTitle}
+            onClick={onNavigate}
             className={cn(
               'flex flex-1 gap-2.5 items-center max-w-50', collapsed && 'justify-center px-0'
             )}
