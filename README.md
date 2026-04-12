@@ -6,6 +6,11 @@
 
 Ссылка на GitHub: [https://github.com/Beavulf/beavulf-chat](https://github.com/Beavulf/beavulf-chat)
 
+Ссылки на видеопрезентации:
+
+- [https://www.loom.com/share/ba6148597b334c81bb06f3031b934637](https://www.loom.com/share/ba6148597b334c81bb06f3031b934637)
+- Демонстрация RealTime обновления списка чатов и сообщений на разных вкладках: [https://www.loom.com/share/b2919232a6994886802f4ec60fa4532c](https://www.loom.com/share/b2919232a6994886802f4ec60fa4532c)
+
 ## Что умеет
 
 - Чат с ИИ (Grok через OpenRouter), ответы стримятся в реальном времени
