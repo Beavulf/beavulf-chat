@@ -12,7 +12,23 @@ export function ChatMessageMarkdown({ text, isUser }: { text: string, isUser: bo
         ? 'bg-[#2f2f2f] text-white rounded-br-sm'
         : 'text-[#ececec] rounded-bl-sm'
     )}>
-      <Markdown remarkPlugins={[remarkGfm]}>
+      <Markdown 
+        remarkPlugins={[remarkGfm]}
+        components={{
+          // ссылки открываются в новой вкладке
+          a: ({ href, children }) => (
+            <a href={href} target="_blank" rel="noopener noreferrer" className='underline'>{children}</a>
+          ),
+          // стилизация блоков кода
+          pre: ({ children }) => (
+            <pre className="bg-[#1e1e1e] rounded-lg p-4 overflow-x-auto">{children}</pre>
+          ),
+          // стилизация инлайн кода
+          code: ({ children }) => (
+            <code className="bg-[#1e1e1e] px-1.5 py-0.5 rounded text-sm">{children}</code>
+          ),
+        }}
+      >
         {text}
       </Markdown>
     </div>

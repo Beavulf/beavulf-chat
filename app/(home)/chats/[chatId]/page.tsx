@@ -18,6 +18,7 @@ import { toast } from 'sonner'
 import { MessageInputArea } from '@/components/MessageInputArea'
 import { useRouter } from 'next/navigation'
 import { createMessageParts, getInitialMessageDataFromLocalStorage } from '../_helper'
+import { AppError } from '@/lib/errors'
 
 type TFile = {
   name: string;
@@ -99,7 +100,11 @@ export default function ChatPage(
   }, [historyMessages, initialMessagesLoaded, setMessages]);
 
   // отображение ошибки из useChat
-  useEffect(()=>{    
+  useEffect(()=>{   
+    if (error instanceof AppError) {
+      toast.error(error.message);
+      return;
+    } 
     if (error) toast.error(error?.message);
   },[error]);
 
@@ -114,7 +119,10 @@ export default function ChatPage(
       file? : TFile
     }
   ) => {
-    if (isStreaming) await stop();
+    if (isStreaming) {
+      await stop();
+      return;
+    }
 
     const trimmed = input.trim();
     if (!trimmed && !file) return;

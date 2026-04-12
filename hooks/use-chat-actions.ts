@@ -23,9 +23,6 @@ export function useChatActions(chatId: string) {
       if (isActive) router.push('/');
       toast.success("Чат успешно удален");
     },
-    onError: (e) => {
-      toast.error(`Не удалось удалить чат: ${e.message}`);
-    },
   });
 
   const renameMutation = useMutation({
@@ -33,9 +30,6 @@ export function useChatActions(chatId: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey });
       toast.success("Чат успешно переименован");
-    },
-    onError: (e) => {
-      toast.error(`Не удалось переименовать чат: ${e.message}`);
     },
   });
 

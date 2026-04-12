@@ -47,24 +47,22 @@ export function MessageInputArea(
     handleSubmit,
     isPendingOrStreaming,
     suggestionMsg
-  }: 
+  }:
   MessageInputAreaProps
 ) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [input, setInput] = useState<string>('');
   const [file, setFile] = useState<File | null>(null);
   const previewUrl = useObjectUrl(file);
-  const [model, setModel] = useState<AiModels>(AI_MODELS.GROK)
-
-  useEffect(() => {
-    const savedModel = window.localStorage.getItem(
-      LOCAL_STORAGE_ITEM.LAST_MODEL
-    ) as AiModels | null;
-
-    if (savedModel) {
-      setModel(savedModel);
-    } 
-  }, []);
+  
+  // Синхронная инициализация модели из localStorage
+  const getModelFromStorage = (): AiModels => {
+    if (typeof window === 'undefined') return AI_MODELS.GROK;
+    const savedModel = window.localStorage.getItem(LOCAL_STORAGE_ITEM.LAST_MODEL);
+    return (savedModel as AiModels) || AI_MODELS.GROK;
+  };
+  
+  const [model, setModel] = useState<AiModels>(getModelFromStorage);
 
   // выбор файла
   const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -230,7 +228,7 @@ export function MessageInputArea(
                     ? 'bg-white text-[#171717] hover:bg-white/90 shadow-sm'
                     : 'bg-[#3f3f3f] text-[#5a5a5a] cursor-not-allowed', 
                 )}
-                onClick={ isPendingOrStreaming ? () => onSubmit() : undefined }
+                onClick={ isPendingOrStreaming ? () => handleSubmit({input:'',model}) : undefined }
               >
                 {isPendingOrStreaming ? (
                   <Square size={14} />
