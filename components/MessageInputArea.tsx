@@ -54,7 +54,17 @@ export function MessageInputArea(
   const [input, setInput] = useState<string>('');
   const [file, setFile] = useState<File | null>(null);
   const previewUrl = useObjectUrl(file);
-  const [model, setModel] = useState<AiModels>(localStorage.getItem(LOCAL_STORAGE_ITEM.LAST_MODEL) as AiModels || AI_MODELS.GROK)
+  const [model, setModel] = useState<AiModels>(AI_MODELS.GROK)
+
+  useEffect(() => {
+    const savedModel = window.localStorage.getItem(
+      LOCAL_STORAGE_ITEM.LAST_MODEL
+    ) as AiModels | null;
+
+    if (savedModel) {
+      setModel(savedModel);
+    } 
+  }, []);
 
   // выбор файла
   const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
