@@ -48,7 +48,7 @@ export async function POST(
     const { chatId } = await params;
     isUuidV4(chatId);
 
-    const { message } : { id: string, message: UIMessage } = await req.json();
+    const { message } : { id: string, message: UIMessage & { metadata: { model: string } } } = await req.json();
     
     if (!message || typeof message !== "object" || !Array.isArray(message.parts)) {
       return NextResponse.json(
@@ -64,6 +64,7 @@ export async function POST(
       );
     }
 
+    const { model } = message.metadata;
     const userText = extractTextFromMessage(message);
 
     if (!userText || userText.trim().length === 0) {
@@ -91,7 +92,7 @@ export async function POST(
     
     // делаем запрос к ИИ
     const result = streamText({
-      model: openrouter('x-ai/grok-4.20'),
+      model: openrouter(model),
       messages: modelMessages,
       abortSignal: req.signal,
       onError: (error) => {

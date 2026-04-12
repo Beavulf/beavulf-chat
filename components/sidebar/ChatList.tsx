@@ -29,7 +29,7 @@ export default function ChatList(
       )}
 
       {isFetching && !isPending && (
-        <div className="h-0.5 bg-gray-500/50 animate-pulse" />
+        <div className="h-0.5 bg-gray-500/50 animate-pulse my-2 mx-2" />
       )}
 
       {isPending && !collapsed && (

@@ -3,6 +3,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { handleError } from '@/lib/utils';
 import { fileService } from '@/service/file-service';
+import { ALLOWED_FILE_TYPES } from '@/constants/constants';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
@@ -19,14 +20,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Файл слишком большой' }, { status: 400 });
     }
 
-    const allowedTypes = [
-      'image/png',
-      'image/jpeg',
-      'image/webp',
-      'text/plain',
-    ];
-
-    if (!allowedTypes.includes(file.type)) {
+    if (!ALLOWED_FILE_TYPES.includes(file.type)) {
       return NextResponse.json({ error: 'Неподдерживаемый тип файла' }, { status: 400 });
     }
 

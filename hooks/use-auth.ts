@@ -3,10 +3,7 @@
 import { QUERY_KEYS } from "@/constants/constants";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { signIn, signOut, signUp } from "@/fetchers/auth-api";
-import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import { ApiError } from "next/dist/server/api-utils";
-import { AppError } from "@/lib/errors";
 
 export function useAuth() {
   const queryClient = useQueryClient();

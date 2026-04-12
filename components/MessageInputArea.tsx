@@ -7,9 +7,18 @@ import { CustomToolTip } from "./CustomToolTip";
 import { toast } from "sonner";
 import Image from "next/image";
 import { useObjectUrl } from "@/hooks/use-object-url";
-import { ALLOWED_FILE_TYPES } from "@/constants/constants";
+import { AI_MODELS, ALLOWED_FILE_TYPES, LOCAL_STORAGE_ITEM, type AiModels } from "@/constants/constants";
+import { AiModelSelect } from "./SelectAiModel";
 
 const MAX_TEXTAREA_HEIGHT = 200
+
+interface MessageInputAreaProps {
+  handleSubmit: (
+    args: { input: string; model: AiModels; e?: React.FormEvent; file?: ChatPayload['message']['file'] }
+  ) => void;
+  isPendingOrStreaming: boolean;
+  suggestionMsg?: string;
+}
 
 type ChatPayload = {
   id: string;
@@ -39,16 +48,13 @@ export function MessageInputArea(
     isPendingOrStreaming,
     suggestionMsg
   }: 
-  {
-    handleSubmit: ({input, e, file}:{input: string, e?: React.FormEvent, file?: ChatPayload['message']['file']}) => void,
-    isPendingOrStreaming: boolean,
-    suggestionMsg?: string
-  }
+  MessageInputAreaProps
 ) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [input, setInput] = useState<string>('');
   const [file, setFile] = useState<File | null>(null);
   const previewUrl = useObjectUrl(file);
+  const [model, setModel] = useState<AiModels>(localStorage.getItem(LOCAL_STORAGE_ITEM.LAST_MODEL) as AiModels || AI_MODELS.GROK)
 
   // выбор файла
   const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -81,7 +87,6 @@ export function MessageInputArea(
     try {
       e?.preventDefault();
       if (!input.trim() && !file) return;
-
       let fileMeta: ChatPayload['message']['file'] | undefined;
 
       if (file) {
@@ -91,9 +96,11 @@ export function MessageInputArea(
           url: dataUrl,
           type: file.type,
         };
+        localStorage.setItem(LOCAL_STORAGE_ITEM.LAST_FILE, JSON.stringify(fileMeta));
       }
 
-      handleSubmit({ input, file: fileMeta });
+      localStorage.setItem(LOCAL_STORAGE_ITEM.LAST_MODEL, model);
+      handleSubmit({ input, file: fileMeta, model });
       setInput('');
       setFile(null);
     } catch (error: unknown) {
@@ -182,7 +189,7 @@ export function MessageInputArea(
                 className="flex h-8 w-8 items-center justify-center rounded-lg text-[#5a5a5a] hover:text-[#acacac] hover:bg-[#3f3f3f] transition-colors cursor-pointer mr-1"
               >
                 <input
-                  accept="image/png,image/jpeg,image/webp,text/plain"
+                  accept="image/png, image/jpeg, image/webp, text/plain"
                   id="file-upload"
                   type="file"
                   style={{ display: 'none' }}
@@ -193,31 +200,37 @@ export function MessageInputArea(
               </label>
             </CustomToolTip>
           </div>
-            
-          <CustomToolTip content={isPendingOrStreaming ? 'Остановить' : 'Отправить'}>
-            <button
-              type={isPendingOrStreaming ? "button" : "submit"}
-              disabled={!input.trim() && !isPendingOrStreaming}
-              className={cn(
-                'flex h-8 w-8 items-center justify-center rounded-lg transition-all duration-150 cursor-pointer',
-                (input.trim() && !isPendingOrStreaming) || (!input.trim() && isPendingOrStreaming)
-                  ? 'bg-white text-[#171717] hover:bg-white/90 shadow-sm'
-                  : 'bg-[#3f3f3f] text-[#5a5a5a] cursor-not-allowed', 
-              )}
-              onClick={
-                isPendingOrStreaming
-                  ? () => handleSubmit({ input: '' })
-                  : undefined
-              }
-            >
-              {isPendingOrStreaming ? (
-                <Square size={14} />
-              ) : (
-                <Send size={14} />
-              )}
-            </button>
-          </CustomToolTip>
+          {/* Выбор модели ИИ */}
+          <div className="flex items-center mr-2 gap-5">
 
+            <div className="flex items-center">
+              <label htmlFor="ai-model-select" className="text-xs text-[#8e8ea0] mr-2">
+                Модель
+              </label>
+              <AiModelSelect model={model} setModel={setModel}/>
+            </div>
+
+            <CustomToolTip content={isPendingOrStreaming ? 'Остановить' : 'Отправить'}>
+              <button
+                type={isPendingOrStreaming ? "button" : "submit"}
+                disabled={!input.trim() && !isPendingOrStreaming}
+                className={cn(
+                  'flex h-8 w-8 items-center justify-center rounded-lg transition-all duration-150 cursor-pointer',
+                  (input.trim() && !isPendingOrStreaming) || (!input.trim() && isPendingOrStreaming)
+                    ? 'bg-white text-[#171717] hover:bg-white/90 shadow-sm'
+                    : 'bg-[#3f3f3f] text-[#5a5a5a] cursor-not-allowed', 
+                )}
+                onClick={ isPendingOrStreaming ? () => onSubmit() : undefined }
+              >
+                {isPendingOrStreaming ? (
+                  <Square size={14} />
+                ) : (
+                  <Send size={14} />
+                )}
+              </button>
+            </CustomToolTip>
+          </div>
+          
         </div>
       </div>
     </form>

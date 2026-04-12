@@ -38,6 +38,7 @@ export async function isResOk(res: Response): Promise<void> {
   } 
 }
 
+// проверка на uuid
 export function isUuidV4(uuid: string): NextResponse | undefined{
   const isUuidV4 = validate(uuid) && version(uuid) === 4;
 

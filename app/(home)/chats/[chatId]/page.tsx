@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useEffect, use, useState } from 'react'
+import { useRef, useEffect, use } from 'react'
 import { useSearchParams } from 'next/navigation'
 import {
   Bot, CircleDashed 
@@ -9,14 +9,21 @@ import { dbMessageToUIMessage } from '@/lib/utils'
 import { useRealtimeMessages } from '@/hooks/realtime-messages'
 import { useQuery } from '@tanstack/react-query'
 import { getMessages } from '@/fetchers/message-api'
-import { QUERY_KEYS } from '@/constants/constants'
+import { AI_MODELS, QUERY_KEYS, type AiModels } from '@/constants/constants'
 import { useChat } from '@ai-sdk/react'
-import { DefaultChatTransport, type UIMessage } from 'ai'
+import { DefaultChatTransport } from 'ai'
 import { API_CONFIG } from '@/config/api-config'
 import { MessageBubble } from '@/components/chat-message/MessageBubble'
 import { toast } from 'sonner'
 import { MessageInputArea } from '@/components/MessageInputArea'
 import { useRouter } from 'next/navigation'
+import { createMessageParts, getInitialMessageDataFromLocalStorage } from '../_helper'
+
+type TFile = {
+  name: string;
+  url: string;
+  type: string;
+}
 
 export default function ChatPage(
   { params }:
@@ -29,7 +36,6 @@ export default function ChatPage(
   const initializedFirstMessage = useRef(false) 
   const firstMessage = searchParams.get('firstMessage')
   const router = useRouter();
-  // const [fileName, setFileName] = useState<string | null>(null)
   
   // useChat с нашим роутом и отправкой одного сообщения в запросе
   const {status, sendMessage, messages, setMessages, regenerate, error, stop } = useChat({
@@ -44,7 +50,10 @@ export default function ChatPage(
         }
       }
     }),
-  })
+  });
+
+  // подписка на сообщения
+  useRealtimeMessages({chatId, setChatMessages: setMessages});
   const isStreaming = status === 'submitted' || status === 'streaming';
   const showAssistantPlaceholder = isStreaming && messages.length > 0 && messages[messages.length - 1]?.role === 'user';
    
@@ -59,18 +68,23 @@ export default function ChatPage(
   useEffect(() => {
     if (firstMessage && !initializedFirstMessage.current && !initialMessagesLoaded.current) {
       initializedFirstMessage.current = true
-      // Проверяем, есть ли уже сообщения в БД — если да, НЕ отправляем повторно
+      // проверяем, есть ли уже сообщения в БД — если да, НЕ отправляем повторно
       if (historyMessages.length > 0) {
         initialMessagesLoaded.current = true;
         router.replace(window.location.pathname, { scroll: false });
         return;
       }
-      sendMessage({ text: firstMessage })
+
+      // формируем данные для отправки
+      const {model, attachedFile} = getInitialMessageDataFromLocalStorage();
+      const {parts, metadata} = createMessageParts(
+        {model, messageText: firstMessage, file: attachedFile}
+      );
+    
+      sendMessage({ parts, metadata });
       router.replace(window.location.pathname, { scroll: false });
     }
   }, [firstMessage, sendMessage, initialMessagesLoaded, historyMessages, router]);
-
-  useRealtimeMessages({chatId, setChatMessages: setMessages});
 
   // инициализируем истории из БД в хук useChat
   useEffect(() => {   
@@ -90,29 +104,26 @@ export default function ChatPage(
   },[error]);
 
   // отправка сообщения
-  const handleSubmit = async ({input, file}:{input: string, file? :{name: string; url: string; type: string}}) => {
+  const handleSubmit = async (
+    {
+      input, file, model=AI_MODELS.GROK
+    }:
+    {
+      input: string, 
+      model: AiModels,
+      file? : TFile
+    }
+  ) => {
     if (isStreaming) await stop();
 
     const trimmed = input.trim();
     if (!trimmed && !file) return;
 
-    const parts: UIMessage['parts'] = [];
-
-    if (trimmed) {
-      parts.push({ type: 'text', text: trimmed });
-    }
-
-    if (file) {
-      // setFileName(file.name)
-      parts.push({
-        type: 'file',
-        url: file.url,
-        mediaType: file.type,
-        filename: file.name,
-      });
-    }
+    const {parts, metadata} = createMessageParts(
+      {model, messageText: trimmed, file: file}
+    );
     
-    await sendMessage({ parts });
+    await sendMessage({ metadata, parts });
     router.replace(window.location.pathname, { scroll: false })
   }
 
@@ -120,13 +131,11 @@ export default function ChatPage(
   const lastMessageId = messages[messages.length - 1]?.id;
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages, lastMessageId])
+  }, [messages, lastMessageId]);
 
   return (
     <div className="relative flex flex-col h-full w-full">
-
       <div className="flex-1 overflow-y-auto no-scrollbar">
-
         <div className="mx-auto max-w-3xl px-4 py-6 flex flex-col gap-6">
           {messages.length === 0 && !isLoading && (
             <div className="flex flex-col items-center justify-center h-48 text-center">

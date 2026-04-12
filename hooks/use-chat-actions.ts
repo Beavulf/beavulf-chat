@@ -1,6 +1,6 @@
 import { usePathname, useRouter } from "next/navigation";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { deleteChat, renameChat, createChat } from "@/fetchers/chats-api";
+import { deleteChat, renameChat } from "@/fetchers/chats-api";
 import { QUERY_KEYS } from "@/constants/constants";
 import { ROUTE_CONFIG } from "@/config/route-config";
 import { toast } from "sonner";

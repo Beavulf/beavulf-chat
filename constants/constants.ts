@@ -8,6 +8,21 @@ export const STALE_TIME = {
   SESSION: 5 * 60 * 1000
 }
 
+export const LOCAL_STORAGE_ITEM = {
+  LAST_MODEL: 'lastUsedModel',
+  LAST_FILE: 'lastUploadedFile'
+}
+
+export const AI_MODELS = {
+  GROK: 'x-ai/grok-4.20',
+  QWEN: 'qwen/qwen3.6-plus',
+  GPT_NANO: 'openai/gpt-5.4-nano',
+  GEMINI_FLASH: 'google/gemini-2.5-flash-lite'
+} as const
+
+export type AiModels = typeof AI_MODELS[keyof typeof AI_MODELS];
+
+
 // допустимые типы файлов
 export const ALLOWED_FILE_TYPES = [
   'image/png',

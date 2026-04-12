@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 
-// хук для создания ссылки превью фото
+// хук для создания ссылки для превью фото
 export function useObjectUrl(file: File | null) {
   const [url, setUrl] = useState<string | null>(null);
   

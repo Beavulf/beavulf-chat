@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Sparkles, Zap, Globe, Code2, LoaderCircle } from 'lucide-react'
 import { useSession } from '@/hooks/use-session'
 import { createChat } from '@/fetchers/chats-api'
-import { QUERY_KEYS } from '@/constants/constants'
+import { QUERY_KEYS, type AiModels } from '@/constants/constants'
 import { ROUTE_CONFIG } from '@/config/route-config'
 import { MessageInputArea } from '@/components/MessageInputArea'
 import { useState } from 'react'
@@ -62,7 +62,14 @@ export default function ChatsPage() {
   })
 
   // подтверждение отправки сообщения
-  const handleSubmit = async ({input,e}:{input: string, e?: React.FormEvent}) => {
+  const handleSubmit = async (
+    { input, model, e }:
+    {
+      input: string, 
+      model: AiModels, 
+      e?: React.FormEvent, 
+    }
+  ) => {
     e?.preventDefault();
     const trimmed = input.trim();
     if (!trimmed || createMutation.isPending) return;
@@ -77,12 +84,10 @@ export default function ChatsPage() {
 
   return (
     <div className="relative flex flex-col items-center justify-center h-full w-full">
-      {/* Background subtle gradient */}
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-[#1a1a1a]/0 via-transparent to-[#171717]/30" />
-
-      {/* Center content */}
+      {/* центральный контент */}
       <div className="relative z-10 flex flex-col items-center w-full max-w-3xl px-4 pb-32">
-        {/* Logo + title */}
+        {/* лого + название */}
         <div className="mb-8 flex flex-col items-center gap-3">
           <svg
             aria-label="Beavulf Chat"
